@@ -41,6 +41,9 @@ ownership on every upload, job, status, output, and download route.
   then run `bash setup-monetization-skill.sh` and enter it at the local prompt.
 - The account has $100 of remaining AWS credits and is on the paid plan. Credits
   are not a spending cap. Confirm service eligibility before launching a GPU.
+- The AWS Price List API showed `g6e.xlarge` On-Demand Linux compute at
+  $1.861/hour in `us-east-1` on 2026-10-11. At that rate, $100 covers at most
+  about 53 GPU hours before storage, web hosting, data transfer, and other costs.
 - The account's `us-east-1` On-Demand G/VT quota was 0. A request for 4 vCPUs
   was submitted on 2026-10-11 and is pending. This permits one `g6e.xlarge` if
   approved; the workload still needs a memory and performance check.
