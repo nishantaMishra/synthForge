@@ -1,6 +1,6 @@
 # Synth Forge
 
-A separate image workspace built around the copied Synthid-Bypass V2 workflow.
+A separate image workspace built around the copied Synthid-Bypass V2 workflow.Works locally and in AWS cloud.
 
 ## Source checkout
 
@@ -8,13 +8,6 @@ This repository contains the Synth Forge interface, the image workflow under
 `studio/workflows/image-reconstruction.json`, and the cloud deployment code.
 Model weights, installed dependencies, uploads, outputs, logs, AWS credentials,
 and the private monetization skill are excluded from Git.
-
-For image processing, install ComfyUI under `ComfyUI/`, create its Python
-environment at `ComfyUI/.venv/`, and install the models and custom node packs
-listed in the upstream [Synthid-Bypass V2 setup guide](https://github.com/cebeuq/Synthid-Bypass#7-setup--usage).
-The launcher expects that environment to include `aiohttp`.
-The bundled workflow retains the upstream graph and model references; Synth
-Forge adds the interface, text tools, and cloud integration.
 
 For the independent CPU cloud demo, follow
 [cloud-infra/README.md](cloud-infra/README.md). Docker builds its dependencies
@@ -128,37 +121,6 @@ Ollama must be running with an installed text model. No cloud API key is needed.
 
 ## Files
 
-```text
-synth/
-├── ComfyUI/          full independent copy, including models and .venv
-├── Synthid-Bypass/   copied upstream research repository
-├── runtime/python/  copied Python 3.11 runtime
-├── studio/          new interface and local API adapter
-├── logs/engine.log  copied engine startup and processing diagnostics
-└── start-forge.sh
-```
-
-Uploads go to `ComfyUI/input/studio/`; final images go to `ComfyUI/output/`
-with the `Synth-Forge` prefix. Existing input/output files were copied as well.
-Model files are real separate copies, without hardlinks or links to the original
-installation. The interface has no build step and no CDN dependencies. Its server
-uses aiohttp from the copied environment for the local engine adapter. A separate
-Playwright browser opens the official Claude and OpenAI verification pages after
-generation. Claude reads Content Credentials locally in that browser; OpenAI
-receives the final image for its provenance check.
-All paths in the launcher are resolved relative to its directory.
-
-## Provider checks
-
-The browser runtime needs Node.js and Playwright. Synth Forge also supports the
-existing Playwright installation under `studio/qa/`. For a fresh installation:
-
-```sh
-cd studio
-npm install
-npx playwright install chromium
-```
-
 Synth Forge uses Playwright’s Chromium or an existing cached Chromium. To select a
 different installed executable, set `SYNTH_VERIFY_BROWSER` before launching.
 No API keys are required. Checks run sequentially, with no automatic retries or
@@ -171,40 +133,9 @@ Claude checks for its Content Credential:
 C2PA metadata and SynthID signals:
 [OpenAI verifier](https://openai.com/research/verify/).
 [Google SynthID](https://synthid.com/) is provided for manual verification.
-“No signal detected” does not prove the file is human-made or rule out AI content.
 
 Reports, exact-byte image snapshots, SHA-256 hashes, and captured provider result
 screenshots are saved under `logs/verification/<job-id>/`. Save report downloads
 the JSON report from the Save verification report node’s details. Refreshing the page reconnects to the same check; restarting
 Synth Forge leaves interrupted checks marked unavailable without resubmitting images.
 
-## Validation
-
-The full prompt is checked with ComfyUI's validation function:
-
-```sh
-cd ComfyUI
-LD_LIBRARY_PATH=../runtime/python/lib .venv/bin/python ../studio/qa/check-workflow.py
-```
-
-The engine must be running on 8191 for this check. Browser checks use the optional
-Playwright installation under `studio/qa/`:
-
-```sh
-node studio/qa/browser-check.cjs
-```
-
-Browser checks run a small real CPU image pipeline, and separately exercise long
-sampling, cancellation and failure events with fixtures. They do not claim to
-test full GPU diffusion. Screenshots are under `studio/qa/artifacts/`; the file
-`process-live-fixture.png` is explicitly a simulated event fixture.
-Provider checks in browser QA use fixtures and do not upload QA images externally.
-The post-generation lifecycle and UI sequencing can be checked without inference:
-
-```sh
-LD_LIBRARY_PATH=runtime/python/lib ComfyUI/.venv/bin/python studio/qa/verification-check.py
-node studio/qa/verification-ui-check.cjs
-node studio/qa/svg-input-check.cjs
-LD_LIBRARY_PATH=runtime/python/lib ComfyUI/.venv/bin/python studio/qa/text-check.py
-node studio/qa/text-ui-check.mjs
-```
