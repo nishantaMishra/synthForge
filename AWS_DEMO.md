@@ -7,13 +7,16 @@ Next.js during the beta, and its Stripe Connect payments are for evaluation.
 
 ## Intended user flow
 
-1. Sign in with a verified account.
-2. See the available plan and complete the beta checkout.
-3. Upload a file and request a run. The cloud service checks the user's plan and
+1. Choose **Use cloud** in the local Studio interface and open the hosted cloud
+   workspace. The app operator configures `SYNTH_CLOUD_URL` after deployment.
+2. Sign in with a verified account. The end user does not provide an AWS account
+   ID, access key, or registry token.
+3. See the available plan and complete the beta checkout.
+4. Upload a file and request a run. The cloud service checks the user's plan and
    records the billable action before dispatching work.
-4. A GPU worker starts on demand, processes the job, and stores the result for
+5. A GPU worker starts on demand, processes the job, and stores the result for
    that user. The web app displays status and lets the user download the result.
-5. The GPU worker stops after an idle period. Persistent storage and the web
+6. The GPU worker stops after an idle period. Persistent storage and the web
    entry point may continue to incur charges.
 
 An arbitrary user-entered ID cannot be used as authentication or as proof of a

@@ -21,6 +21,30 @@ const verificationCompletionText='Your result is ready. Select a verification no
 const verificationOutcomeLabels={pending:'Waiting',checking:'Checking',detected:'Signal detected',not_detected:'No signal detected',
   unavailable:'No verification result returned',inconclusive:'Result needs review',manual:'Manual check needed',cancelled:'Check cancelled'};
 
+const cloudDialog=$('cloudDialog');
+function closeCloudDialog(){cloudDialog.close();}
+$('closeCloudDialog').onclick=closeCloudDialog;
+$('dismissCloudDialog').onclick=closeCloudDialog;
+$('cloudButton').onclick=async()=>{
+  $('cloudDialogMessage').textContent='Checking whether the cloud workspace is ready…';
+  $('openCloudWorkspace').hidden=true;
+  cloudDialog.showModal();
+  try {
+    const cloud=await request('/api/cloud/status');
+    if (!cloud.available) {
+      $('cloudDialogMessage').textContent='The cloud workspace has not been launched yet. You can keep processing on this device. When cloud hosting is ready, the app operator will connect it here.';
+      return;
+    }
+    $('cloudDialogMessage').textContent='The cloud workspace is ready to open. Sign in there, choose an available plan, then upload a file. Your cloud jobs run separately from this local workspace.';
+    $('openCloudWorkspace').href=cloud.url;
+    $('openCloudWorkspace').hidden=false;
+  } catch(error) {
+    $('cloudDialogMessage').textContent=error.status===404
+      ? 'The cloud workspace has not been launched yet. You can keep processing on this device. When cloud hosting is ready, the app operator will connect it here.'
+      : 'Cloud availability could not be checked. Please try again later.';
+  }
+};
+
 function readSettings() {
   return {adaptive_level:Number($('adaptiveLevel').value),denoise_min:Number($('denoiseMin').value),denoise_max:Number($('denoiseMax').value)};
 }

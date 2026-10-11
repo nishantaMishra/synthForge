@@ -8,9 +8,18 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/"><span class="brand-icon">S</span><span>Synth <b>Studio</b></span><span class="edition">LOCAL EDITION</span></a>
+    <button id="cloudButton" class="cloud-entry" type="button">☁ Use cloud</button>
     <div class="view-switch" role="group" aria-label="Workspace view"><button id="processView" class="selected" aria-pressed="true">◈ Process</button><button id="minimalView" aria-pressed="false">▣ Minimal</button></div>
     <div class="connection"><i id="connectionDot"></i><span id="connectionText">Starting engine</span></div>
   </header>
+  <dialog id="cloudDialog" class="cloud-dialog" aria-labelledby="cloudDialogTitle">
+    <div class="cloud-dialog-head"><span class="cloud-glyph">☁</span><button id="closeCloudDialog" type="button" aria-label="Close cloud information">×</button></div>
+    <p class="eyebrow">CLOUD WORKSPACE</p>
+    <h2 id="cloudDialogTitle">Run without local hardware</h2>
+    <p id="cloudDialogMessage">Checking whether the cloud workspace is ready…</p>
+    <p class="cloud-dialog-note">You sign in to Synth Studio. You do not enter an AWS account ID or the private registry token.</p>
+    <div class="cloud-dialog-actions"><button id="dismissCloudDialog" type="button">Keep using this device</button><a id="openCloudWorkspace" class="primary" href="#" hidden>Open cloud workspace ↗</a></div>
+  </dialog>
   <main>
     <section id="engineBanner" class="engine-banner" role="status" hidden><strong>CPU processing — much slower than GPU</strong><span>This engine is using your processor. Sampling can take several minutes per step. For GPU processing, restart Studio without <code>--cpu</code>; resolve any NVIDIA driver fault first.</span></section>
     <section class="intro"><div><p id="workspaceEyebrow" class="eyebrow">IMAGE WORKSPACE</p><h1 id="workspaceTitle">Your image. Every step, visible.</h1><p id="workspaceDescription" class="subtext">Follow the reconstruction as it happens, or keep your focus on the result.</p></div><div class="device"><span class="device-dot"></span><span id="deviceName">Connecting to local GPU</span></div></section>

@@ -13,6 +13,14 @@ Open **http://127.0.0.1:8190**. The launcher also starts this copy's ComfyUI eng
 on port **8191**. The original installation on port 8188 is independent.
 Press Ctrl+C in the launch terminal to stop Studio and its engine.
 
+The **Use cloud** button explains cloud availability. The cloud workspace has
+not been deployed yet, so it currently keeps users in the local app. After the
+operator deploys and tests the cloud web app, set `SYNTH_CLOUD_URL` to its HTTPS
+address when launching Studio; the button will then open that workspace. End
+users sign in there. They do not enter an AWS account ID or registry token.
+Cloud resources and billing remain inactive until the operator completes their
+setup. See [AWS_DEMO.md](AWS_DEMO.md) for the deployment state.
+
 For CPU testing: `./start-studio.sh --cpu`. CPU diffusion is substantially slower.
 If NVIDIA reports a fatal UVM error or “Node Reboot Required”, reboot the computer
 before using the normal GPU launcher. Do not run heavy inference in both installs

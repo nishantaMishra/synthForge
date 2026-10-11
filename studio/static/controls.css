@@ -1,4 +1,19 @@
 .engine-banner{position:sticky;top:8px;z-index:20;margin-bottom:22px;padding:15px 18px;border:1px solid #8c7048;border-radius:12px;background:#342a1e;box-shadow:0 6px 24px #0006;display:flex;flex-direction:column;gap:7px}
+.cloud-entry{border-color:#48634c;color:var(--lime);font-size:12px;white-space:nowrap}
+.cloud-entry:hover{background:#263d32}
+.cloud-dialog{max-width:min(520px,calc(100vw - 32px));padding:26px;border:1px solid #4e6653;border-radius:16px;background:#1b2420;color:var(--text);box-shadow:0 24px 80px #000b}
+.cloud-dialog::backdrop{background:#050807c7}
+.cloud-dialog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.cloud-dialog-head button{border:0;font-size:24px;color:var(--muted);padding:0 5px}
+.cloud-glyph{display:grid;place-items:center;width:40px;height:40px;border-radius:11px;background:#2d4934;color:var(--lime);font-size:22px}
+.cloud-dialog .eyebrow{color:var(--lime)}
+.cloud-dialog h2{font-size:25px;line-height:1.25;margin:8px 0 16px}
+.cloud-dialog p{font-size:13px;line-height:1.7;color:#c4d3c8}
+.cloud-dialog .cloud-dialog-note{font-size:12px;color:var(--muted);margin-top:14px}
+.cloud-dialog-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;margin-top:26px}
+.cloud-dialog-actions .primary{display:inline-block;text-decoration:none;font-size:12px}
+@media(max-width:850px){.topbar{flex-wrap:wrap;height:auto;min-height:66px;padding-top:12px;padding-bottom:12px}.cloud-entry{order:3}.view-switch{order:2}}
+@media(max-width:580px){.cloud-entry{font-size:11px;padding:8px}.view-switch button{padding:8px}}
 .engine-banner strong{color:#ffce87;font-size:13px;font-weight:600}
 .engine-banner span{color:#d3c1a6;font-size:12px;line-height:1.6}
 .engine-banner code{color:#ffe0b1}

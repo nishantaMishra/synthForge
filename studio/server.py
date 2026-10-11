@@ -2,6 +2,7 @@
 import argparse
 import asyncio
 import json
+import os
 from pathlib import Path
 import signal
 import subprocess
@@ -16,6 +17,25 @@ from text_pipeline import TextStudio, text_graph
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = Path(__file__).parent / 'static'
 WORKFLOW = ROOT / 'ComfyUI/user/default/workflows/Synthid-Bypass-v2.0.json'
+
+
+def cloud_workspace_url():
+    """Expose only an operator-configured web origin, never AWS credentials."""
+    value = os.environ.get('SYNTH_CLOUD_URL', '').strip()
+    if not value:
+        return None
+    parsed = urlsplit(value)
+    local = parsed.hostname in ('localhost', '127.0.0.1')
+    if parsed.scheme != 'https' and not (local and parsed.scheme == 'http'):
+        return None
+    if not parsed.netloc or parsed.username or parsed.password or parsed.fragment:
+        return None
+    return value.rstrip('/')
+
+
+async def cloud_status(_request):
+    url = cloud_workspace_url()
+    return web.json_response({'available': bool(url), 'url': url})
 
 
 @web.middleware
@@ -162,6 +182,7 @@ def main():
     app.on_cleanup.append(studio.close)
     app.router.add_get('/', lambda request: web.FileResponse(STATIC / 'index.html'))
     app.router.add_get('/api/health', studio.health)
+    app.router.add_get('/api/cloud/status', cloud_status)
     app.router.add_get('/api/graph', studio.graph)
     app.router.add_post('/api/run', studio.run)
     app.router.add_get('/api/text/health', studio.text.health)
