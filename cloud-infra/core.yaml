@@ -114,7 +114,13 @@ Outputs:
     Value: !Sub 'https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com'
   BucketName:
     Value: !Ref ObjectsBucket
+  BucketArn:
+    Value: !GetAtt ObjectsBucket.Arn
   JobsTableName:
     Value: !Ref JobsTable
+  JobsTableArn:
+    Value: !GetAtt JobsTable.Arn
   QueueUrl:
     Value: !Ref JobsQueue
+  QueueArn:
+    Value: !GetAtt JobsQueue.Arn

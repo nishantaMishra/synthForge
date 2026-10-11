@@ -30,7 +30,9 @@ ownership on every upload, job, status, output, and download route.
   `cloud-infra/core.yaml` defines the first three resources and Cognito, but
   has not been deployed; the GPU trigger is still pending.
 - GPU worker: the existing ComfyUI graph and model files, isolated from the
-  public internet. It stops after the queue is empty and the idle window expires.
+  public internet. A local worker and wake/idle templates are prepared in
+  `cloud-worker/` and `cloud-infra/gpu-control.yaml`, but the GPU instance and
+  model installation remain to be built and tested on AWS.
 - Text worker: Ollama and Desklib can initially run on the same worker, with
   separate resource limits. Model choice must be based on models actually
   installed and tested on the selected instance.

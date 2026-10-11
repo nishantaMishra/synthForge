@@ -4,6 +4,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -14,6 +15,7 @@ from aiohttp import web
 from verification import job_id
 
 OLLAMA = 'http://127.0.0.1:11434'
+TEXT_GPU_LAYERS = int(os.environ.get('SYNTH_TEXT_NUM_GPU', '0'))
 DESKLIB_MODEL = 'desklib/ai-text-detector-v1.01'
 DESKLIB_REVISION = '5fdea974cd4287c61674951ec78803aa274e2fb7'
 MAX_BYTES = 2 * 1024**2
@@ -285,7 +287,7 @@ class TextStudio:
     async def chat(self, model, instruction, content, schema, tokens):
         payload = {'model': model, 'stream': False, 'keep_alive': '30s', 'format': schema,
                    'messages': [{'role': 'system', 'content': instruction}, {'role': 'user', 'content': content}],
-                   'options': {'temperature': .1, 'seed': 42, 'num_gpu': 0, 'num_ctx': 8192, 'num_predict': tokens}}
+                   'options': {'temperature': .1, 'seed': 42, 'num_gpu': TEXT_GPU_LAYERS, 'num_ctx': 8192, 'num_predict': tokens}}
         async with self.studio.session.post(OLLAMA + '/api/chat', json=payload, timeout=aiohttp.ClientTimeout(total=600)) as response:
             data = await response.json()
             if response.status != 200:
@@ -305,14 +307,15 @@ class TextStudio:
                 self.node(report, 'text-read', 'running')
                 meta, source = self.input(report['input_id'])
                 self.node(report, 'text-read', 'finished', encoding=meta['encoding'], characters=len(source), words=meta['words'])
-                self.node(report, 'text-model', 'running', 'Loading the local text model on CPU.')
+                device = 'GPU' if TEXT_GPU_LAYERS > 0 else 'CPU'
+                self.node(report, 'text-model', 'running', f'Loading the local text model on {device}.')
                 async with self.studio.session.post(OLLAMA + '/api/generate', json={
                         'model': report['model'], 'stream': False, 'keep_alive': '30s',
-                        'options': {'num_gpu': 0, 'num_ctx': 8192}}, timeout=aiohttp.ClientTimeout(total=600)) as response:
+                        'options': {'num_gpu': TEXT_GPU_LAYERS, 'num_ctx': 8192}}, timeout=aiohttp.ClientTimeout(total=600)) as response:
                     loaded = await response.json()
                     if response.status != 200:
                         raise ValueError(loaded.get('error', 'The local text model could not load.'))
-                self.node(report, 'text-model', 'finished', model=report['model'], device='CPU')
+                self.node(report, 'text-model', 'finished', model=report['model'], device=device)
                 pieces = chunks(source)
                 total = sum(editable and bool(text.strip()) for text, editable in pieces)
                 output, retained, accepted, done = [], [], 0, 0

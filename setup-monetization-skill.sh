@@ -3,6 +3,7 @@
 set -euo pipefail
 
 skill_dir="${XDG_DATA_HOME:-$HOME/.local/share}/synth-monetization-beta"
+project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 mkdir -p -- "$skill_dir"
 chmod 700 -- "$skill_dir"
 
@@ -26,7 +27,7 @@ npm install --prefix "$skill_dir" --userconfig "$skill_dir/.npmrc" \
   --no-audit --no-fund @aws-app-monetization/monetize-skill
 (
   cd -- "$skill_dir"
-  node_modules/.bin/monetize-skill install --project "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+  node_modules/.bin/monetize-skill install --project "$project_dir"
 )
 
 printf 'AWS App Monetization skill installed. Restart your coding assistant before running /monetize.\n'

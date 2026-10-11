@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Start one stopped Synth GPU instance when jobs arrive; worker stops itself after idle
+
+Parameters:
+  GpuInstanceId:
+    Type: String
+    AllowedPattern: 'i-[0-9a-f]+'
+  QueueUrl:
+    Type: String
+  QueueArn:
+    Type: String
+  BucketArn:
+    Type: String
+  JobsTableArn:
+    Type: String
+
+Resources:
+  WorkerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: synth-worker
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub '${BucketArn}/*'
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
+                Resource: !Ref QueueArn
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:UpdateItem]
+                Resource: !Ref JobsTableArn
+              - Effect: Allow
+                Action: ec2:StopInstances
+                Resource: !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${GpuInstanceId}'
+
+  WorkerProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref WorkerRole]
+
+  WakeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: synth-wake
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: sqs:GetQueueAttributes
+                Resource: !Ref QueueArn
+              - Effect: Allow
+                Action: ec2:DescribeInstances
+                Resource: '*'
+              - Effect: Allow
+                Action: ec2:StartInstances
+                Resource: !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${GpuInstanceId}'
+
+  WakeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt WakeRole.Arn
+      Timeout: 15
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          QUEUE_URL: !Ref QueueUrl
+          INSTANCE_ID: !Ref GpuInstanceId
+      Code:
+        ZipFile: |
+          import boto3
+          import os
+
+          sqs = boto3.client('sqs')
+          ec2 = boto3.client('ec2')
+
+          def handler(_event, _context):
+              queue = sqs.get_queue_attributes(
+                  QueueUrl=os.environ['QUEUE_URL'],
+                  AttributeNames=['ApproximateNumberOfMessages'])
+              if int(queue['Attributes'].get('ApproximateNumberOfMessages', '0')) == 0:
+                  return {'started': False}
+              instance_id = os.environ['INSTANCE_ID']
+              instance = ec2.describe_instances(InstanceIds=[instance_id])['Reservations'][0]['Instances'][0]
+              if instance['State']['Name'] != 'stopped':
+                  return {'started': False, 'state': instance['State']['Name']}
+              ec2.start_instances(InstanceIds=[instance_id])
+              return {'started': True}
+
+  WakeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: rate(1 minute)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt WakeFunction.Arn
+          Id: synth-gpu-wake
+
+  WakePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WakeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt WakeRule.Arn
+
+Outputs:
+  WorkerInstanceProfile:
+    Value: !Ref WorkerProfile
