@@ -1,18 +1,26 @@
-import {createTextMode} from './text-mode.mjs?v=text-workflow-2';
+import {createTextMode} from './text-mode.mjs?v=user-copy-1';
 const $ = id => document.getElementById(id);
 const svgNS = 'http://www.w3.org/2000/svg';
-const storageKey = 'synth-studio-session-v1';
+// Carry existing browser sessions and settings into the renamed app.
+for (const suffix of ['session-v1', 'settings-v1', 'view']) {
+  const key = `synth-forge-${suffix}`;
+  const legacy = localStorage.getItem(`synth-studio-${suffix}`);
+  if (localStorage.getItem(key) === null && legacy !== null) {
+    localStorage.setItem(key, legacy);
+  }
+}
+const storageKey = 'synth-forge-session-v1';
 let leavingPage = false;
 window.addEventListener('pagehide', () => { leavingPage = true; });
 const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
-const settingsKey = 'synth-studio-settings-v1';
+const settingsKey = 'synth-forge-settings-v1';
 const savedSettings = JSON.parse(localStorage.getItem(settingsKey) || 'null');
 const state = {clientId: saved?.clientId || crypto.randomUUID(), promptId: saved?.promptId || null,
   input: saved?.input || null, output: saved?.output || null, running: saved?.running || false,
   started: saved?.started || null, ended: saved?.ended || null, states: saved?.states || {},
   log: saved?.log || [], graph: null, current: null, ready: false, socketReady: false,
   socket: null, showAll: false, follow: true, zoom: 1, positions: {}, previewUrl: null,
-  mode: localStorage.getItem('synth-studio-view') || 'process', cpuMode:false,
+  mode: localStorage.getItem('synth-forge-view') || 'process', cpuMode:false,
   runSettings:saved?.runSettings || null, phase:saved?.phase || 'generation', verification:saved?.verification || null};
 let verificationLoading = false;
 let textMode=null;
@@ -21,29 +29,34 @@ const verificationCompletionText='Your result is ready. Select a verification no
 const verificationOutcomeLabels={pending:'Waiting',checking:'Checking',detected:'Signal detected',not_detected:'No signal detected',
   unavailable:'No verification result returned',inconclusive:'Result needs review',manual:'Manual check needed',cancelled:'Check cancelled'};
 
-const cloudDialog=$('cloudDialog');
-function closeCloudDialog(){cloudDialog.close();}
-$('closeCloudDialog').onclick=closeCloudDialog;
-$('dismissCloudDialog').onclick=closeCloudDialog;
+const cloudPanel=$('cloudPanel');
+function closeCloudPanel(){cloudPanel.hidden=true;$('cloudButton').setAttribute('aria-expanded','false');}
+$('closeCloudPanel').onclick=closeCloudPanel;
+function showCloudAvailability(cloud){
+  $('cloudButtonStatus').textContent=cloud.available?'Open separate site ↗':'Not launched · details';
+}
+async function refreshCloudAvailability(){
+  try{showCloudAvailability(await request('/api/cloud/status'));}
+  catch{$('cloudButtonStatus').textContent='Availability unknown';}
+}
 $('cloudButton').onclick=async()=>{
-  $('cloudDialogMessage').textContent='Checking whether the cloud workspace is ready…';
-  $('openCloudWorkspace').hidden=true;
-  cloudDialog.showModal();
+  if(!cloudPanel.hidden){closeCloudPanel();return;}
+  cloudPanel.hidden=false;
+  $('cloudButton').setAttribute('aria-expanded','true');
+  $('cloudPanelTitle').textContent='Checking cloud availability';
+  $('cloudPanelMessage').textContent='Checking whether a cloud workspace has been launched…';
   try {
     const cloud=await request('/api/cloud/status');
-    if (!cloud.available) {
-      $('cloudDialogMessage').textContent='The cloud workspace has not been launched yet. You can keep processing on this device. When cloud hosting is ready, the app operator will connect it here.';
-      return;
-    }
-    $('cloudDialogMessage').textContent='The cloud workspace is ready to open. Sign in there, choose an available plan, then upload a file. Your cloud jobs run separately from this local workspace.';
-    $('openCloudWorkspace').href=cloud.url;
-    $('openCloudWorkspace').hidden=false;
+    showCloudAvailability(cloud);
+    if(cloud.available){window.location.assign(cloud.url);return;}
+    $('cloudPanelTitle').textContent='Cloud processing is not available yet';
+    $('cloudPanelMessage').textContent='No cloud service has been launched. The Run button below uses this device.';
   } catch(error) {
-    $('cloudDialogMessage').textContent=error.status===404
-      ? 'The cloud workspace has not been launched yet. You can keep processing on this device. When cloud hosting is ready, the app operator will connect it here.'
-      : 'Cloud availability could not be checked. Please try again later.';
+    $('cloudPanelTitle').textContent='Cloud availability could not be checked';
+    $('cloudPanelMessage').textContent='This page still runs on your device. Check the local server and try again.';
   }
 };
+refreshCloudAvailability();
 
 function readSettings() {
   return {adaptive_level:Number($('adaptiveLevel').value),denoise_min:Number($('denoiseMin').value),denoise_max:Number($('denoiseMax').value)};
@@ -125,9 +138,9 @@ function describe(id) { return state.graph?.nodes.find(n => n.id === String(id))
 function updateButtons() {
   const text=state.media==='text';
   $('runButton').disabled = !state.ready || (!text && !state.socketReady) || !state.input || state.running;
-  $('runButton').textContent = state.running ? (state.cpuMode ? 'Processing on CPU…' : 'Processing…') : (state.cpuMode ? '▶ Run image on CPU (slow)' : '▶ Run image');
+  $('runButton').textContent = state.running ? (state.cpuMode ? 'Processing locally on CPU…' : 'Processing locally…') : (state.cpuMode ? '▶ Run image on this device · CPU (slow)' : '▶ Run image on this device');
   if (state.running && state.phase === 'verification') $('runButton').textContent = 'Checking provenance…';
-  if(text)$('runButton').textContent=state.running?'Processing text…':'▶ Run text';
+  if(text)$('runButton').textContent=state.running?'Processing text locally…':'▶ Run text on this device';
   $('stopButton').hidden = !state.running;
   $('stopButton').textContent = state.phase === 'verification' ? 'Stop checks' : 'Stop run';
   $('replaceButton').disabled = state.running;
@@ -143,7 +156,7 @@ function setView(mode) {
     $(name + 'View').classList.toggle('selected', name === mode);
     $(name + 'View').setAttribute('aria-pressed', String(name === mode));
   }
-  localStorage.setItem('synth-studio-view', mode);
+  localStorage.setItem('synth-forge-view', mode);
 }
 function setStatus(title, detail) {
   $('runStatus').textContent = title;
@@ -204,7 +217,7 @@ function showTool(id, live = false) {
     }
     if (id==='verify-report' && state.verification) {
       const button=document.createElement('button');button.className='text-button';button.textContent='↓ Save report';
-      button.onclick=()=>downloadBlob(new Blob([JSON.stringify(state.verification,null,2)],{type:'application/json'}),'synth-studio-verification.json');$('nodeActions').append(button);
+      button.onclick=()=>downloadBlob(new Blob([JSON.stringify(state.verification,null,2)],{type:'application/json'}),'synth-forge-verification.json');$('nodeActions').append(button);
     }
     $('nodeActions').hidden=!$('nodeActions').children.length;
   }
@@ -499,7 +512,7 @@ async function verifyResult() {
     if (!leavingPage && state.promptId===promptId && state.running) {
       if ([400,401,403,404,405,410].includes(error.status)) {
         const message=error.status===404 || error.status===405
-          ? 'Image saved, but this Studio server cannot start verification for the job. Restart Studio to load the updated server, then check the saved output.'
+          ? 'Image saved, but this Synth Forge server cannot start verification for the job. Restart Synth Forge to load the updated server, then check the saved output.'
           : 'Image saved, but verification was rejected: '+error.message;
         state.verification={prompt_id:promptId,status:'error',message,output:state.output,providers:[
           {id:'claude',name:'Claude',url:'https://claude.com/check-files',outcome:'unavailable',message},
@@ -677,7 +690,7 @@ $('compareSlider').oninput=e=>$('comparisonImages').style.setProperty('--split',
 function downloadBlob(blob, name) {
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
-$('downloadLog').onclick=()=>downloadBlob(new Blob([JSON.stringify(state.log,null,2)],{type:'application/json'}),'synth-studio-activity.json');
+$('downloadLog').onclick=()=>downloadBlob(new Blob([JSON.stringify(state.log,null,2)],{type:'application/json'}),'synth-forge-activity.json');
 $('downloadComparison').onclick=async()=>{
   try {
     const images=await Promise.all([state.input,state.output].map(image=>new Promise((resolve,reject)=>{
@@ -689,7 +702,7 @@ $('downloadComparison').onclick=async()=>{
     images.forEach((img,i)=>{const scale=Math.min(width/img.naturalWidth,height/img.naturalHeight);
       context.drawImage(img,i*width+(width-img.naturalWidth*scale)/2,60+(height-img.naturalHeight*scale)/2,img.naturalWidth*scale,img.naturalHeight*scale);
       context.fillStyle='#c0f88b';context.font='22px sans-serif';context.fillText(i?'OUTPUT':'INPUT',i*width+22,39);});
-    canvas.toBlob(blob=>downloadBlob(blob,'synth-studio-comparison.png'),'image/png');
+    canvas.toBlob(blob=>downloadBlob(blob,'synth-forge-comparison.png'),'image/png');
   } catch(error){notice(error.message);}
 };
 textMode=createTextMode({state,$,request,persist,notice,log,renderLog,renderGraph,layoutGraph,showTool,followNode,updateButtons,setStatus,finish,syncVerificationGraph,updateGraphProgress,configureInputGraph,renderImages,health});

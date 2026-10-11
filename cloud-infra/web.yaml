@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Synth Forge Next.js CPU demo on Lambda with a throttled HTTPS HTTP API
+Parameters:
+  ImageUri:
+    Type: String
+  AppOrigin:
+    Type: String
+    Default: https://deployment-pending.invalid
+  CognitoDomain:
+    Type: String
+  CognitoClientId:
+    Type: String
+  CognitoUserPoolId:
+    Type: String
+  BucketName:
+    Type: String
+  BucketArn:
+    Type: String
+  QueueUrl:
+    Type: String
+  QueueArn:
+    Type: String
+  JobsTableName:
+    Type: String
+  JobsTableArn:
+    Type: String
+  DemoOwnerSub:
+    Type: String
+    Default: ''
+    AllowedPattern: '^$|[0-9a-f-]{36}'
+  DemoExpiresAt:
+    Type: String
+    AllowedPattern: '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z'
+Resources:
+  WebRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: synth-web
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [s3:PutObject, s3:GetObject]
+                Resource: !Sub '${BucketArn}/*'
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !Ref QueueArn
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem]
+                Resource: !Ref JobsTableArn
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-web:*'
+  WebLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-web'
+      RetentionInDays: 7
+  WebFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: WebLogs
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-web'
+      PackageType: Image
+      Architectures: [x86_64]
+      Code: {ImageUri: !Ref ImageUri}
+      Role: !GetAtt WebRole.Arn
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          APP_ORIGIN: !Ref AppOrigin
+          COGNITO_DOMAIN: !Ref CognitoDomain
+          COGNITO_CLIENT_ID: !Ref CognitoClientId
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+          CLOUD_BUCKET: !Ref BucketName
+          CLOUD_QUEUE_URL: !Ref QueueUrl
+          CLOUD_JOBS_TABLE: !Ref JobsTableName
+          CLOUD_COMPUTE_MODE: cpu-text
+          CLOUD_DEFAULT_TEXT_MODEL: llama3.2:3b
+          CLOUD_CPU_DEMO_USER_ID: !Ref DemoOwnerSub
+          CLOUD_DEMO_EXPIRES_AT: !Ref DemoExpiresAt
+  WebApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      ProtocolType: HTTP
+      DisableExecuteApiEndpoint: false
+  WebIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt WebFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 30000
+  WebRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebApi
+      RouteKey: '$default'
+      Target: !Sub 'integrations/${WebIntegration}'
+  WebStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref WebApi
+      StageName: '$default'
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingRateLimit: 2
+        ThrottlingBurstLimit: 10
+  InvocationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref WebFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${WebApi}/*'
+Outputs:
+  AppUrl:
+    Value: !GetAtt WebApi.ApiEndpoint
+  WebApiId:
+    Value: !Ref WebApi
+  WebFunctionArn:
+    Value: !GetAtt WebFunction.Arn
+  WebFunctionName:
+    Value: !Ref WebFunction

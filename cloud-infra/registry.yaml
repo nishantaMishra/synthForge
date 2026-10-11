@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Private container images for the disposable Synth Forge CPU demo
+Resources:
+  WebRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      ImageTagMutability: IMMUTABLE
+      EmptyOnDelete: true
+  WorkerRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      ImageTagMutability: IMMUTABLE
+      EmptyOnDelete: true
+  OllamaRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      ImageTagMutability: IMMUTABLE
+      EmptyOnDelete: true
+Outputs:
+  WebRepositoryUri:
+    Value: !GetAtt WebRepository.RepositoryUri
+  WorkerRepositoryUri:
+    Value: !GetAtt WorkerRepository.RepositoryUri
+  OllamaRepositoryUri:
+    Value: !GetAtt OllamaRepository.RepositoryUri

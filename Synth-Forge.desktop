@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=Synth Studio
+Name=Synth Forge
 Comment=Independent image workspace with live process and minimal views
-Exec=/home/nishant/github/synth/start-studio.sh
+Exec=/home/nishant/github/synth/start-forge.sh
 Terminal=true
 Categories=Graphics;Development;
 StartupNotify=false

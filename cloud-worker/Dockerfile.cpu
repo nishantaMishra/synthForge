@@ -1,0 +1,11 @@
+FROM python:3.12-slim-bookworm
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 SYNTH_TEXT_NUM_GPU=0 CLOUD_COMPUTE_MODE=cpu-text
+WORKDIR /app
+COPY cloud-worker/requirements.txt ./cloud-worker/requirements.txt
+RUN pip install --no-cache-dir -r cloud-worker/requirements.txt \
+    && useradd --uid 10001 --create-home synth \
+    && mkdir -p /app/data && chown synth:synth /app/data
+COPY studio/text_pipeline.py studio/verification.py studio/desklib_worker.py ./studio/
+COPY cloud-worker/worker.py cloud-worker/cpu_server.py cloud-worker/cpu-entrypoint.sh ./cloud-worker/
+USER synth
+CMD ["sh", "/app/cloud-worker/cpu-entrypoint.sh"]

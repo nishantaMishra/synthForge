@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloud setup · Synth Forge</title>
+  <link rel="stylesheet" href="/static/cloud-setup.css?v=forge-brand-1">
+  <script type="module" src="/static/cloud-setup.js?v=forge-brand-1"></script>
+</head>
+<body>
+  <header><a class="brand" href="/"><span class="icon">S</span><span>Synth <b>Forge</b></span></a><span>OWNER SETUP</span></header>
+  <main>
+    <p class="eyebrow">AWS CLOUD WORKSPACE</p>
+    <h1>Set up cloud processing</h1>
+    <p class="lead">Connect your AWS account and launch a small text demonstration. Your users will sign in to Synth Forge; they will never need an AWS account ID or registry token.</p>
+    <div class="notice">No AWS resources or payment plans are created by opening this page. A quota request does not start a GPU. AWS credits can offset eligible charges, but they are not a hard spending limit.</div>
+    <div class="cards">
+      <section class="card"><div class="step">01 · CONNECT</div><h2>AWS account</h2><p id="accountStatus" class="state">Checking sign-in…</p>
+        <p>Sign in with <code>aws login</code> in a terminal on this machine, then refresh this check. AWS opens its own browser sign-in page. Use a dedicated account role for deployment.</p>
+        <div class="actions"><button id="copyLogin" type="button">Copy sign-in command</button><button id="refresh" class="primary" type="button">Refresh checks</button></div>
+      </section>
+      <section class="card"><div class="step">02 · CREDITS</div><h2>Check available credits</h2><p>Open AWS Billing to confirm the current balance, expiry, and which services the credits cover. This step stays in AWS because the balance and terms belong to your account.</p>
+        <div class="actions"><a href="https://console.aws.amazon.com/billing/home#/credits" target="_blank" rel="noopener noreferrer">Open AWS credits ↗</a></div>
+      </section>
+      <section class="card"><div class="step">03 · COMPUTE ACCESS</div><h2>CPU demo and GPU quota</h2><p id="cpuStatus" class="state">Checking CPU quota…</p><p>A small CPU instance can demonstrate text processing with a compact model. Image reconstruction and larger models need the planned GPU worker.</p><p id="quotaStatus" class="state">Checking GPU quota…</p><p>The proposed GPU worker needs four On-Demand G/VT vCPUs in <code>us-east-1</code>. AWS decides quota requests; approval does not launch an instance.</p>
+        <div class="actions"><button id="requestQuota" type="button" disabled>Request 4 vCPUs</button><a href="https://us-east-1.console.aws.amazon.com/servicequotas/home/services/ec2/quotas/L-DB2E81BA" target="_blank" rel="noopener noreferrer">View in AWS ↗</a></div>
+      </section>
+      <section class="card"><div class="step">04 · CPU DEMO</div><h2>Launch a text workspace</h2>
+        <p id="deploymentStatus" class="state">Reading deployment status…</p>
+        <p>One private text job, a small model on an AWS CPU, and an HTTPS workspace. The worker stops after five idle minutes. The demo closes after two hours.</p>
+        <details><summary>View resources and limits</summary><ul id="deploymentPlan"></ul></details>
+        <label class="check-label"><input id="allowCloudCharges" type="checkbox"> I reviewed my credits and authorize AWS charges for this demo. Credits are not a spending cap.</label>
+        <div class="actions"><button id="prepareDemo" type="button">Prepare locally</button><button id="launchDemo" class="primary" type="button" disabled>Launch CPU demo on AWS</button><a id="openDemo" hidden target="_blank" rel="noopener noreferrer">Open cloud workspace ↗</a></div>
+        <p id="deploymentMessage" role="status">Preparing locally downloads and builds containers; it creates no AWS resources.</p>
+      </section>
+      <section class="card"><div class="step">05 · CONNECT WORKSPACE</div><h2>Cloud workspace address</h2><p class="state" id="workspaceStatus">No address connected</p><p>The CPU deployment fills this address automatically. You can also connect another tested HTTPS workspace here.</p>
+        <label class="url-label" for="workspaceUrl">Hosted HTTPS address</label><input id="workspaceUrl" type="url" placeholder="https://your-cloud-workspace.example" autocomplete="url">
+        <div class="actions"><button id="saveWorkspace" type="button">Save address</button></div>
+        <p>The CPU demo supports text only. Image processing and paid billing require further setup.</p>
+      </section>
+      <section class="card"><div class="step">06 · ENABLE YOUR TEST</div><h2>Allow your confirmed account</h2>
+        <p>After deployment, open the cloud workspace, create an account, and confirm your email. Enter that email here to allow your one text job.</p>
+        <label class="url-label" for="ownerEmail">Confirmed sign-in email</label><input id="ownerEmail" type="email" autocomplete="email" placeholder="you@example.com">
+        <div class="actions"><button id="enableOwner" type="button" disabled>Enable my one text job</button></div>
+        <p id="ownerStatus" class="state">Deploy the workspace first.</p>
+      </section>
+      <section class="card"><div class="step">07 · FINISH THE DEMO</div><h2>Stop and clean up</h2>
+        <p>Stop closes the workspace and stops the CPU. Storage remains. Cleanup deletes this deployment, including its files, job records, sign-in accounts, and containers.</p>
+        <label class="check-label"><input id="deleteDemoData" type="checkbox"> Delete this demo and its saved files permanently.</label>
+        <div class="actions"><button id="stopDemo" type="button" disabled>Stop demo</button><button id="cleanupDemo" type="button" disabled>Delete demo resources</button></div>
+      </section>
+    </div>
+    <p id="message" role="status" aria-live="polite"></p>
+  </main>
+</body>
+</html>

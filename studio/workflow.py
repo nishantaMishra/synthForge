@@ -133,5 +133,5 @@ def make_run(template, image, settings):
         prompt[node_id]['inputs']['seed'] = secrets.randbelow(2**48)
     for key in ('adaptive_level', 'denoise_min', 'denoise_max'):
         prompt['595']['inputs'][key] = settings[key]
-    prompt['62']['inputs']['filename_prefix'] = 'Synth-Studio'
+    prompt['62']['inputs']['filename_prefix'] = 'Synth-Forge'
     return prompt

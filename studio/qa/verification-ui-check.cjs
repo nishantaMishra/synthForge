@@ -40,7 +40,7 @@ context.fetch=async url=>({ok:true,text:async()=>JSON.stringify(url.includes('/h
     {id:'verify-claude',label:'Check Claude',tool:'Claude',stage:6,details:{}},
     {id:'verify-openai',label:'Check OpenAI',tool:'OpenAI',stage:6,details:{}},
     {id:'verify-google',label:'Check Google SynthID',tool:'Google SynthID',stage:6,manual:true,details:{}},
-    {id:'verify-report',label:'Save verification report',tool:'Synth Studio',stage:7,details:{}}
+    {id:'verify-report',label:'Save verification report',tool:'Synth Forge',stage:7,details:{}}
   ],edges:[{from:'62',to:'verify-claude'},{from:'verify-claude',to:'verify-openai'},
     {from:'62',to:'verify-google',manual:true},{from:'verify-openai',to:'verify-report'}]};
     state.states['62']={status:'finished'};layoutGraph();`,context);
@@ -59,14 +59,14 @@ context.fetch=async url=>({ok:true,text:async()=>JSON.stringify(url.includes('/h
   assert.equal(document.getElementById('runStatus').textContent,'Image complete');
   assert.match(document.getElementById('runDetail').textContent,/Select a verification node for details/);
   assert.doesNotMatch(document.getElementById('toolDescription').textContent,/unavailable|too long/i);
-  assert.equal(JSON.parse(storage.get('synth-studio-session-v1')).verification.status,'complete');
+  assert.equal(JSON.parse(storage.get('synth-forge-session-v1')).verification.status,'complete');
   assert.equal(checks,2);
   assert.equal(vm.runInContext("state.states['verify-openai'].status",context),'finished');
   assert.equal(vm.runInContext("state.states['verify-openai'].outcome",context),'unavailable');
   assert.equal(vm.runInContext("state.states['verify-report'].status",context),'finished');
   assert.equal(vm.runInContext("state.states['verify-google'].status",context),'manual');
   assert.equal(document.getElementById('overallProgress').style.width,'100%');
-  const persisted=JSON.parse(storage.get('synth-studio-session-v1'));
+  const persisted=JSON.parse(storage.get('synth-forge-session-v1'));
   assert.equal(persisted.states['verify-google'].status,'manual');
   assert.equal(persisted.verification.providers.find(p=>p.id==='openai').outcome,'unavailable');
   const card=document.getElementById('graph').children.find(e=>e.attributes['aria-label']==='Check OpenAI: Done');
@@ -90,7 +90,7 @@ context.fetch=async url=>({ok:true,text:async()=>JSON.stringify(url.includes('/h
   assert.equal(vm.runInContext("state.states['verify-claude'].status",context),'finished');
   assert.equal(vm.runInContext("state.states['verify-report'].status",context),'finished');
   vm.runInContext("showTool('verify-claude')",context);
-  assert.match(document.getElementById('toolDescription').textContent,/Restart Studio/);
+  assert.match(document.getElementById('toolDescription').textContent,/Restart Synth Forge/);
   const restoredGraph=vm.runInContext('state.graph',context);
   context.WebSocket={OPEN:1,CONNECTING:0};
   context.fetch=async url=>({ok:true,text:async()=>JSON.stringify(url==='/api/health' ?

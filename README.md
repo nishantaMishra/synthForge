@@ -1,27 +1,46 @@
-# Synth Studio
+# Synth Forge
 
 A separate image workspace built around the copied Synthid-Bypass V2 workflow.
+
+## Source checkout
+
+This repository contains the Synth Forge interface, the image workflow under
+`studio/workflows/image-reconstruction.json`, and the cloud deployment code.
+Model weights, installed dependencies, uploads, outputs, logs, AWS credentials,
+and the private monetization skill are excluded from Git.
+
+For image processing, install ComfyUI under `ComfyUI/`, create its Python
+environment at `ComfyUI/.venv/`, and install the models and custom node packs
+listed in the upstream [Synthid-Bypass V2 setup guide](https://github.com/cebeuq/Synthid-Bypass#7-setup--usage).
+The launcher expects that environment to include `aiohttp`.
+The bundled workflow retains the upstream graph and model references; Synth
+Forge adds the interface, text tools, and cloud integration.
+
+For the independent CPU cloud demo, follow
+[cloud-infra/README.md](cloud-infra/README.md). Docker builds its dependencies
+without needing the local ComfyUI installation.
 
 ## Start
 
 ```sh
 cd /home/nishant/github/synth
-./start-studio.sh
+./start-forge.sh
 ```
 
 Open **http://127.0.0.1:8190**. The launcher also starts this copy's ComfyUI engine
 on port **8191**. The original installation on port 8188 is independent.
-Press Ctrl+C in the launch terminal to stop Studio and its engine.
+Press Ctrl+C in the launch terminal to stop Synth Forge and its engine.
 
 The **Use cloud** button explains cloud availability. The cloud workspace has
 not been deployed yet, so it currently keeps users in the local app. After the
-operator deploys and tests the cloud web app, set `SYNTH_CLOUD_URL` to its HTTPS
-address when launching Studio; the button will then open that workspace. End
+operator deploys and tests the cloud web app, use **Use cloud → Owner: set up AWS**
+to save its HTTPS address (or set `SYNTH_CLOUD_URL` when launching Synth Forge); the
+button will then open that workspace. End
 users sign in there. They do not enter an AWS account ID or registry token.
 Cloud resources and billing remain inactive until the operator completes their
 setup. See [AWS_DEMO.md](AWS_DEMO.md) for the deployment state.
 
-For CPU testing: `./start-studio.sh --cpu`. CPU diffusion is substantially slower.
+For CPU testing: `./start-forge.sh --cpu`. CPU diffusion is substantially slower.
 If NVIDIA reports a fatal UVM error or “Node Reboot Required”, reboot the computer
 before using the normal GPU launcher. Do not run heavy inference in both installs
 at once: they share the same physical GPU.
@@ -50,7 +69,7 @@ an explicitly labelled Run image on CPU (slow) button.
 No image-quality or watermark-removal changes were made to the supplied pipeline.
 Segment Anything runs on the CPU to avoid exhausting GPU memory during face-boundary
 refinement; reconstruction and face detail sampling still use the GPU engine.
-After generation succeeds, Studio checks the exact final image once with Claude
+After generation succeeds, Synth Forge checks the exact final image once with Claude
 and OpenAI, shows their responses, then ends the run. The output remains available
 for download during verification. Stop checks cancels verification. Google SynthID
 is listed as a manual check because its portal prohibits automated submissions.
@@ -116,11 +135,11 @@ synth/
 ├── runtime/python/  copied Python 3.11 runtime
 ├── studio/          new interface and local API adapter
 ├── logs/engine.log  copied engine startup and processing diagnostics
-└── start-studio.sh
+└── start-forge.sh
 ```
 
 Uploads go to `ComfyUI/input/studio/`; final images go to `ComfyUI/output/`
-with the `Synth-Studio` prefix. Existing input/output files were copied as well.
+with the `Synth-Forge` prefix. Existing input/output files were copied as well.
 Model files are real separate copies, without hardlinks or links to the original
 installation. The interface has no build step and no CDN dependencies. Its server
 uses aiohttp from the copied environment for the local engine adapter. A separate
@@ -131,7 +150,7 @@ All paths in the launcher are resolved relative to its directory.
 
 ## Provider checks
 
-The browser runtime needs Node.js and Playwright. Studio also supports the
+The browser runtime needs Node.js and Playwright. Synth Forge also supports the
 existing Playwright installation under `studio/qa/`. For a fresh installation:
 
 ```sh
@@ -140,7 +159,7 @@ npm install
 npx playwright install chromium
 ```
 
-Studio uses Playwright’s Chromium or an existing cached Chromium. To select a
+Synth Forge uses Playwright’s Chromium or an existing cached Chromium. To select a
 different installed executable, set `SYNTH_VERIFY_BROWSER` before launching.
 No API keys are required. Checks run sequentially, with no automatic retries or
 changes to the generated image based on their results. Sign-in requirements,
@@ -157,7 +176,7 @@ C2PA metadata and SynthID signals:
 Reports, exact-byte image snapshots, SHA-256 hashes, and captured provider result
 screenshots are saved under `logs/verification/<job-id>/`. Save report downloads
 the JSON report from the Save verification report node’s details. Refreshing the page reconnects to the same check; restarting
-Studio leaves interrupted checks marked unavailable without resubmitting images.
+Synth Forge leaves interrupted checks marked unavailable without resubmitting images.
 
 ## Validation
 

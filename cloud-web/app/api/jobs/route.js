@@ -11,12 +11,15 @@ export const runtime = 'nodejs';
 export async function POST(request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
-  if (!jobsEnabled()) return NextResponse.json({ error: 'Cloud jobs are not available yet' }, { status: 503 });
+  if (!jobsEnabled(session.userId)) return NextResponse.json({ error: 'Cloud jobs are not available yet' }, { status: 503 });
   const raw = await request.text();
   if (raw.length > 10000) return NextResponse.json({ error: 'Request is too large' }, { status: 413 });
   let body;
   try { body = JSON.parse(raw); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
   const { kind, inputKey } = body;
+  if (process.env.CLOUD_COMPUTE_MODE === 'cpu-text' && kind === 'image') {
+    return NextResponse.json({ error: 'This CPU demo supports text jobs only' }, { status: 422 });
+  }
   if (!['image', 'text'].includes(kind) || typeof inputKey !== 'string' ||
       !new RegExp(`^input/${session.userId}/[0-9a-f-]{36}\\.(png|jpg|jpeg|webp|txt|md|text)$`).test(inputKey) ||
       (kind === 'image' && !/\.(png|jpg|jpeg|webp)$/.test(inputKey)) ||
@@ -52,6 +55,22 @@ export async function POST(request) {
   const id = randomUUID();
   const item = { id, userId: session.userId, kind, options, inputKey,
     status: 'QUEUED', createdAt: new Date().toISOString() };
+  if (process.env.CLOUD_COMPUTE_MODE === 'cpu-text') {
+    try {
+      await db.send(new UpdateCommand({ TableName: jobsTable,
+        Key: { id: `cpu-demo-limit/${session.userId}` },
+        UpdateExpression: 'ADD #used :one',
+        ConditionExpression: 'attribute_not_exists(#used) OR #used < :limit',
+        ExpressionAttributeNames: { '#used': 'used' },
+        ExpressionAttributeValues: { ':one': 1, ':limit': 1 },
+      }));
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        return NextResponse.json({ error: 'The one-job CPU demo limit has been reached' }, { status: 429 });
+      }
+      throw error;
+    }
+  }
   await db.send(new PutCommand({ TableName: jobsTable, Item: item, ConditionExpression: 'attribute_not_exists(id)' }));
   try {
     await sqs.send(new SendMessageCommand({ QueueUrl: queueUrl, MessageBody: JSON.stringify({ jobId: id }) }));

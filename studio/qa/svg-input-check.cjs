@@ -50,7 +50,7 @@ context.fetch=async(url,options)=>{
   assert.equal(submitted[0].image,'studio/rendered/smiling_monkey.png');
   assert.equal(vm.runInContext('state.input.filename',context),'smiling_monkey.svg');
   assert.equal(vm.runInContext("state.states['prepare-svg'].status",context),'finished');
-  const persisted=JSON.parse(storage.get('synth-studio-session-v1'));
+  const persisted=JSON.parse(storage.get('synth-forge-session-v1'));
   assert.equal(persisted.input.engineImage.filename,'smiling_monkey.png');
   vm.runInContext("event({type:'execution_error',data:{prompt_id:state.promptId,node_id:'11',node_type:'LoadImage',exception_message:'Fixture decoder failure'}})",context);
   assert.equal(vm.runInContext('state.running',context),false);

@@ -13,24 +13,17 @@ from aiohttp import web
 from workflow import compile_workflow, describe_graph, make_run
 from verification import Verification, job_id, verification_graph
 from text_pipeline import TextStudio, text_graph
+from cloud_setup import CloudSetup
+from cloud_config import workspace_url
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = Path(__file__).parent / 'static'
-WORKFLOW = ROOT / 'ComfyUI/user/default/workflows/Synthid-Bypass-v2.0.json'
+WORKFLOW = ROOT / 'studio/workflows/image-reconstruction.json'
 
 
 def cloud_workspace_url():
     """Expose only an operator-configured web origin, never AWS credentials."""
-    value = os.environ.get('SYNTH_CLOUD_URL', '').strip()
-    if not value:
-        return None
-    parsed = urlsplit(value)
-    local = parsed.hostname in ('localhost', '127.0.0.1')
-    if parsed.scheme != 'https' and not (local and parsed.scheme == 'http'):
-        return None
-    if not parsed.netloc or parsed.username or parsed.password or parsed.fragment:
-        return None
-    return value.rstrip('/')
+    return workspace_url()
 
 
 async def cloud_status(_request):
@@ -42,7 +35,7 @@ async def cloud_status(_request):
 async def local_origin(request, handler):
     origin = request.headers.get('Origin')
     if request.headers.get('Sec-Fetch-Site') == 'cross-site' or (origin and urlsplit(origin).netloc != request.host):
-        raise web.HTTPForbidden(text='Open Synth Studio directly on its localhost address.')
+        raise web.HTTPForbidden(text='Open Synth Forge directly on its localhost address.')
     return await handler(request)
 
 
@@ -176,6 +169,7 @@ def main():
         child = subprocess.Popen(command, cwd=ROOT / 'ComfyUI', stdout=(logs / 'engine.log').open('ab'),
                                  stderr=subprocess.STDOUT, start_new_session=True)
     studio = Studio(args.backend_port)
+    cloud_setup = CloudSetup()
     studio.child = child
     app = web.Application(client_max_size=100 * 1024**2, middlewares=[local_origin])
     app.on_startup.append(studio.start)
@@ -183,6 +177,11 @@ def main():
     app.router.add_get('/', lambda request: web.FileResponse(STATIC / 'index.html'))
     app.router.add_get('/api/health', studio.health)
     app.router.add_get('/api/cloud/status', cloud_status)
+    app.router.add_get('/api/cloud/setup/status', cloud_setup.status)
+    app.router.add_get('/api/cloud/setup/deployment', cloud_setup.deployment_status)
+    app.router.add_post('/api/cloud/setup/deployment', cloud_setup.deployment_action)
+    app.router.add_post('/api/cloud/setup/quota', cloud_setup.request_quota)
+    app.router.add_post('/api/cloud/setup/workspace', cloud_setup.save_workspace)
     app.router.add_get('/api/graph', studio.graph)
     app.router.add_post('/api/run', studio.run)
     app.router.add_get('/api/text/health', studio.text.health)

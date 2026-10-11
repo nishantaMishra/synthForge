@@ -40,11 +40,13 @@ export function createTextMode(api) {
     $('settings').hidden=text;$('settingsButton').hidden=text;
     $('textSettings').hidden=!text;
     $('workspaceEyebrow').textContent=text?'TEXT WORKSPACE':'IMAGE WORKSPACE';
-    $('graphTitle').textContent=text?'Follow the text workflow':'Watch your image take shape';
-    $('graphEmptyTitle').textContent=text?'The graph unfolds as your text runs':'The graph unfolds as your image runs';
-    $('graphEmptyDescription').textContent=text?'Each step appears as it runs. Connections follow the text through editing, meaning checks, and verification.':'Each tool appears when it starts working. Connections show how the image travels between steps.';
-    $('workspaceTitle').textContent=text?'Your text. Small, reviewable edits.':'Your image. Every step, visible.';
-    $('workspaceDescription').textContent=text?'Light edits, a comparison you can review, and a local Desklib check.':'Follow the reconstruction as it happens, or keep your focus on the result.';
+    $('graphTitle').textContent='Processing status';
+    $('graphEmptyTitle').textContent='No active run';
+    $('graphEmptyDescription').textContent='Choose a file and start processing.';
+    $('workspaceTitle').textContent=text?'Text editing':'Image reconstruction';
+    $('workspaceDescription').textContent='';
+    $('workspaceDescription').hidden=true;
+    $('locationDescription').textContent=text?'The Run text button uses your local CPU and Ollama model.':'The Run image button uses your local engine.';
     $('workflowName').textContent=text?'Text reconstruction':'Image reconstruction';
     $('workflowDescription').textContent=text?'Light wording edits → meaning checks → text file → Desklib':'Reconstruction → final image → provenance checks';
     $('engineBanner').hidden=true;

@@ -96,7 +96,7 @@ async function main() {
       executablePath:await browserExecutable(playwright.chromium)});
   } catch(error) {
     for (const provider of providers) emit({...provider, outcome:'unavailable',
-      message:'Verification browser could not start. Check Studio’s Playwright/Chromium setup and browser permissions. '+error.message.slice(0,400)});
+      message:'Verification browser could not start. Check Synth Forge’s Playwright/Chromium setup and browser permissions. '+error.message.slice(0,400)});
     return;
   }
   process.once('SIGTERM', async()=>{await browser.close();process.exit(0);});

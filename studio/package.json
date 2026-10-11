@@ -1,7 +1,7 @@
 {
   "private": true,
   "type": "module",
-  "description": "Browser runtime for Synth Studio’s post-generation provenance checks",
-  "scripts": {"dev": "../start-studio.sh"},
+  "description": "Browser runtime for Synth Forge’s post-generation provenance checks",
+  "scripts": {"dev": "../start-forge.sh"},
   "dependencies": {"playwright": "1.64.0"}
 }

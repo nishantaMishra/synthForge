@@ -55,7 +55,7 @@ def text_graph():
         ('text-meaning', 'Check meaning and facts', 'Preservation checks', 'Check edit size, protected facts, formatting, and semantic equivalence. Retain the original when an edit fails a check.'),
         ('text-save', 'Save final text', 'File writer', 'Write the complete output in the original encoding and retain the input file.'),
         ('verify-desklib', 'Check Desklib', 'Desklib · local', 'Score the output with Desklib’s published open English-text detector. Its statistical estimate is not proof of authorship and may differ from the website.'),
-        ('verify-report', 'Save verification report', 'Synth Studio', 'Save preservation statistics and the detector result, then end the run.'),
+        ('verify-report', 'Save verification report', 'Synth Forge', 'Save preservation statistics and the detector result, then end the run.'),
     ]
     nodes = [{'id': identifier, 'label': label, 'tool': tool, 'description': description,
               'type': 'TextStep', 'stage': stage, 'details': {}} for stage, (identifier, label, tool, description) in enumerate(entries)]
@@ -199,7 +199,7 @@ class TextStudio:
                 raise web.HTTPNotFound(text='Text run not found.')
             report = json.loads(file.read_text())
             if report['status'] not in TERMINAL:
-                report.update(status='error', message='Studio restarted during this text run. Start it again.', finished_at=now())
+                report.update(status='error', message='Synth Forge restarted during this text run. Start it again.', finished_at=now())
             self.reports[identifier] = report
         return self.reports[identifier]
 

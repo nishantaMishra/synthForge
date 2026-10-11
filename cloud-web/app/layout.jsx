@@ -1,7 +1,7 @@
 import './style.css';
 
 export const metadata = {
-  title: 'Synth Studio Cloud',
+  title: 'Synth Forge Cloud',
   description: 'On-demand image and text processing',
 };
 

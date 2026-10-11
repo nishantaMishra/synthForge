@@ -64,7 +64,7 @@ const url = 'http://127.0.0.1:8190';
   await page.getByRole('button',{name:'Minimal',exact:false}).click();
   assert.equal(await page.locator('#processSection').isVisible(),false);
   assert.equal(await page.locator('#outputImage').isVisible(),true);
-  const finalSession=await page.evaluate(()=>JSON.parse(localStorage.getItem('synth-studio-session-v1')));
+  const finalSession=await page.evaluate(()=>JSON.parse(localStorage.getItem('synth-forge-session-v1')));
   const cancellation=await page.request.post(url+`/comfy/api/jobs/${finalSession.promptId}/cancel`);
   assert.equal(cancellation.status(),200);
   assert.equal((await cancellation.json()).cancelled,false);
@@ -142,7 +142,7 @@ const url = 'http://127.0.0.1:8190';
     await live.waitForFunction(()=>document.getElementById('runStatus').textContent==='Run unavailable');
   } catch(error) {
     console.log(await live.evaluate(()=>({status:document.getElementById('runStatus').textContent,
-      session:JSON.parse(localStorage.getItem('synth-studio-session-v1'))})),failures);
+      session:JSON.parse(localStorage.getItem('synth-forge-session-v1'))})),failures);
     throw error;
   }
   assert.equal(await live.locator('#runButton').isEnabled(),true);

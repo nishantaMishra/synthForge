@@ -1,9 +1,15 @@
-# Synth Studio Cloud entry point
+# Synth Forge Cloud entry point
+
+The production container and Lambda/API Gateway template are prepared in
+`Dockerfile` and `../cloud-infra/web.yaml`. Follow
+[the CPU deployment guide](../cloud-infra/README.md) or launch from the local
+owner setup page. No web service has been deployed yet.
 
 This Next.js application contains Cognito sign-in and the cloud job API. It is
-not deployed or ready for paid use. The upload and job routes deliberately return
-503 until `lib/cloud.js` is changed to check a real per-user entitlement through
-AWS App Monetization. The Python Studio and ComfyUI remain local.
+not deployed or ready for paid use. The upload and job routes return 503 except
+for the explicitly configured one-job, owner-only CPU text demonstration. Paid
+access still needs a real per-user entitlement through AWS App Monetization.
+The Python Synth Forge and ComfyUI remain local.
 
 ## Local setup
 
@@ -36,3 +42,13 @@ the stable Cognito `sub` used for job ownership and future billing.
 
 The GPU worker, queue trigger, idle shutdown, pricing plan, checkout, and
 monetization hooks still need to be connected before cloud processing is usable.
+
+For a CPU text demonstration, set `CLOUD_COMPUTE_MODE=cpu-text` in the web app
+and worker and choose an installed compact Ollama model with
+`CLOUD_DEFAULT_TEXT_MODEL`. After Cognito sign-in, get the owner's `sub` from
+`/api/me` and set `CLOUD_CPU_DEMO_USER_ID` to that exact value on the web app.
+Only that signed-in owner can upload and submit a job. DynamoDB permits one CPU
+demo job for that owner, including failed runs, to bound the test. Image uploads
+and jobs return 422. Leave `CLOUD_CPU_DEMO_USER_ID` unset outside the private
+demo; paid or public access still requires AWS App Monetization entitlements.
+These settings do not deploy AWS resources or activate payments.

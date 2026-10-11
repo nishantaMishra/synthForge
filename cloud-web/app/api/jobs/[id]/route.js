@@ -17,6 +17,7 @@ export async function GET(_request, { params }) {
   const job = result.Item;
   if (!job || job.userId !== session.userId) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const response = { id, kind: job.kind, status: job.status, createdAt: job.createdAt };
+  if (job.status === 'FAILED') response.failure = job.failure || 'Cloud processing failed';
   if (job.status === 'SUCCEEDED' && job.outputKey?.startsWith(`output/${session.userId}/`)) {
     response.downloadUrl = await getSignedUrl(s3, new GetObjectCommand({ Bucket: bucket, Key: job.outputKey }), { expiresIn: 300 });
   }

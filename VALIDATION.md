@@ -22,7 +22,7 @@ fresh CUDA probe failed in both the copied and original Python environments.
 The original running application was not stopped or changed to repair this.
 
 The interface was left running with the copied engine in explicit CPU mode for
-inspection. Reboot, then use `./start-studio.sh` without `--cpu` for GPU processing.
+inspection. Reboot, then use `./start-forge.sh` without `--cpu` for GPU processing.
 This interface changes presentation and execution visibility, not the supplied
 diffusion pipeline's image quality or watermark-removal behavior.
 
@@ -63,7 +63,7 @@ remains unverified under the command sandbox restrictions described above.
 
 ## Running-server correction — 11 October 2026
 
-The active Studio process was still serving the old 36-node graph and returned
+The active Synth Forge process was still serving the old 36-node graph and returned
 404 for verification. An updated adapter was validated on port 8192, then replaced
 the adapter on 8190 while preserving the idle ComfyUI engine and completed job
 history. The active API now returns 40 nodes including all four verification
@@ -74,11 +74,11 @@ The existing final output was checked once. Claude’s result screenshot confirm
 that it found no signs the file was processed by Claude. Its current wording was
 added to the classifier. OpenAI’s automated browser did not expose an upload
 control, so its check is unavailable. This does not constitute a negative OpenAI
-result. Actual Studio rendering is still not confirmed through browser automation.
+result. Actual Synth Forge rendering is still not confirmed through browser automation.
 
 ## SVG preview correction — 11 October 2026
 
-Studio now forwards `Sec-Fetch-Dest` and the upstream content-disposition and
+Synth Forge now forwards `Sec-Fetch-Dest` and the upstream content-disposition and
 security/cache headers. Live requests for `smiling_monkey.svg` confirmed
 `image/svg+xml` for image previews and an attachment/octet-stream response for
 document navigation, with no-store caching and destination variation retained.
@@ -107,7 +107,7 @@ canvas rendering itself was tested with fixtures rather than a live browser.
 ## SAM memory correction — 11 October 2026
 
 The failure occurred in Segment Anything’s GPU attention workspace at node 613:
-it requested 768 MiB while CUDA reported 16.5 MiB free. Studio now configures
+it requested 768 MiB while CUDA reported 16.5 MiB free. Synth Forge now configures
 SAMLoader with its supported CPU mode and describes that choice in the graph.
 Diffusion and face detail sampling continue on the GPU; model selections,
 resolution, and denoise settings were preserved.

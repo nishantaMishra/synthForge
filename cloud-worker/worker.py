@@ -1,4 +1,4 @@
-"""Run owned SQS jobs against the loopback Synth Studio API on a GPU instance."""
+"""Run owned SQS jobs against the loopback Synth Forge API on an EC2 worker."""
 
 import json
 import logging
@@ -8,6 +8,7 @@ import tempfile
 import time
 
 import boto3
+from botocore.exceptions import ClientError
 import requests
 
 LOG = logging.getLogger('synth-cloud-worker')
@@ -22,6 +23,7 @@ STUDIO = os.environ.get('STUDIO_URL', 'http://127.0.0.1:8190').rstrip('/')
 IDLE_SECONDS = int(os.environ.get('CLOUD_IDLE_SECONDS', '300'))
 JOB_SECONDS = int(os.environ.get('CLOUD_JOB_SECONDS', '3600'))
 START_SECONDS = int(os.environ.get('CLOUD_START_SECONDS', '600'))
+COMPUTE_MODE = os.environ.get('CLOUD_COMPUTE_MODE', 'gpu').strip().lower()
 
 s3 = boto3.client('s3', region_name=REGION)
 sqs = boto3.client('sqs', region_name=REGION)
@@ -46,6 +48,20 @@ def get_json(method, path, **kwargs):
     response = http.request(method, STUDIO + path, timeout=60, **kwargs)
     response.raise_for_status()
     return response.json()
+
+
+def claim(job_id):
+    try:
+        table.update_item(Key={'id': job_id},
+                          UpdateExpression='SET #status = :running, startedAt = :now',
+                          ConditionExpression='#status = :queued',
+                          ExpressionAttributeNames={'#status': 'status'},
+                          ExpressionAttributeValues={':running': 'RUNNING', ':queued': 'QUEUED', ':now': int(time.time())})
+        return True
+    except ClientError as error:
+        if error.response['Error']['Code'] == 'ConditionalCheckFailedException':
+            return False
+        raise
 
 
 def wait_for_text(job_id, deadline):
@@ -94,8 +110,17 @@ def process(job):
             options = job['options']
             started = get_json('POST', '/api/text/run', json={
                 'input_id': uploaded['id'], 'model': options['model'], 'edit_limit': options['editLimit']})
-            output, content_type, suffix = wait_for_text(started['id'], deadline)
+            try:
+                output, content_type, suffix = wait_for_text(started['id'], deadline)
+            except Exception:
+                try:
+                    get_json('POST', f"/api/text/jobs/{started['id']}/cancel")
+                except requests.RequestException:
+                    LOG.exception('Could not cancel the interrupted text job')
+                raise
         elif job['kind'] == 'image':
+            if COMPUTE_MODE == 'cpu-text':
+                raise ValueError('Image jobs are unavailable in the CPU text demo')
             with input_file.open('rb') as source:
                 uploaded = get_json('POST', '/comfy/upload/image', files={'image': (input_file.name, source)},
                                     data={'type': 'input', 'subfolder': 'cloud', 'overwrite': 'false'})
@@ -122,15 +147,18 @@ def queue_depth():
 def main():
     if not 60 <= JOB_SECONDS <= 43000 or IDLE_SECONDS < 60 or START_SECONDS < 60:
         raise ValueError('Set job, idle, and startup time limits to valid positive values')
+    if COMPUTE_MODE not in ('gpu', 'cpu-text'):
+        raise ValueError('CLOUD_COMPUTE_MODE must be gpu or cpu-text')
     startup_deadline = time.monotonic() + START_SECONDS
+    health_path = '/api/text/health' if COMPUTE_MODE == 'cpu-text' else '/api/health'
     while True:
         try:
-            if get_json('GET', '/api/health').get('ready'):
+            if get_json('GET', health_path).get('ready'):
                 break
         except requests.RequestException:
             pass
         if time.monotonic() >= startup_deadline:
-            LOG.error('Studio did not become ready; failing pending jobs and stopping GPU instance')
+            LOG.error('Synth Forge did not become ready; failing pending jobs and stopping EC2 worker')
             while True:
                 waiting = sqs.receive_message(QueueUrl=QUEUE_URL, MaxNumberOfMessages=10,
                                               WaitTimeSeconds=0).get('Messages', [])
@@ -147,7 +175,7 @@ def main():
                         LOG.exception('Could not fail queued job after startup timeout')
             ec2.stop_instances(InstanceIds=[INSTANCE_ID])
             return
-        LOG.info('Waiting for local Synth Studio and image engine')
+        LOG.info('Waiting for Synth Forge %s engine', COMPUTE_MODE)
         time.sleep(10)
     idle_since = time.monotonic()
     while True:
@@ -156,7 +184,7 @@ def main():
         messages = response.get('Messages', [])
         if not messages:
             if time.monotonic() - idle_since >= IDLE_SECONDS and queue_depth() == 0:
-                LOG.info('Queue idle; stopping GPU instance')
+                LOG.info('Queue idle; stopping EC2 worker')
                 ec2.stop_instances(InstanceIds=[INSTANCE_ID])
                 return
             continue
@@ -165,13 +193,16 @@ def main():
         try:
             job_id = json.loads(message['Body'])['jobId']
             item = table.get_item(Key={'id': job_id}, ConsistentRead=True).get('Item')
-            if item and item['status'] == 'QUEUED':
-                update(job_id, 'RUNNING', startedAt=int(time.time()))
+            if item and item['status'] == 'QUEUED' and claim(job_id):
                 try:
                     process(item)
                 except Exception as error:
                     LOG.exception('Job %s failed', job_id)
                     update(job_id, 'FAILED', failure=str(error)[:300], finishedAt=int(time.time()))
+            elif item and item['status'] == 'RUNNING':
+                # A lease lasts longer than the job limit. A RUNNING message
+                # received again after a worker restart cannot safely be rerun.
+                update(job_id, 'FAILED', failure='Cloud worker stopped during processing', finishedAt=int(time.time()))
             sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=message['ReceiptHandle'])
         except Exception:
             LOG.exception('Could not handle queue message')

@@ -23,7 +23,7 @@ async def check():
     await nodes.init_extra_nodes(init_api_nodes=False)
     with urlopen('http://127.0.0.1:8191/object_info') as response:
         registry = json.load(response)
-    workflow = json.loads((ROOT / 'ComfyUI/user/default/workflows/Synthid-Bypass-v2.0.json').read_text())
+    workflow = json.loads((ROOT / 'studio/workflows/image-reconstruction.json').read_text())
     template = compile_workflow(workflow, registry)
     prompt = make_run(template, 'example.png', {'adaptive_level': 6, 'denoise_min': .08, 'denoise_max': .15})
     result = await execution.validate_prompt('d895a64c-76f3-4282-9493-a5a5aeab9e43', prompt, None)

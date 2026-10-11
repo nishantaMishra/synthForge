@@ -17,8 +17,18 @@ export function cloudConfig() {
   return { bucket, queueUrl, jobsTable };
 }
 
-export function jobsEnabled() {
-  // The monetization integration must replace this gate with a real per-user
-  // entitlement check before any paid work can run.
-  return false;
+export function cpuDemoAllowed(userId) {
+  // Only the owner account can run the temporary text demo. This is not a paid
+  // entitlement and must not be used to grant general cloud access.
+  const expires = process.env.CLOUD_DEMO_EXPIRES_AT;
+  const open = !expires || Date.now() < Date.parse(expires);
+  return open && process.env.CLOUD_COMPUTE_MODE === 'cpu-text' &&
+    Boolean(process.env.CLOUD_CPU_DEMO_USER_ID) &&
+    userId === process.env.CLOUD_CPU_DEMO_USER_ID;
+}
+
+export function jobsEnabled(userId) {
+  // The monetization integration must add a real per-user entitlement check
+  // before any paid or public cloud work can run.
+  return cpuDemoAllowed(userId);
 }

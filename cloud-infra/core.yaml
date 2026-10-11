@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Synth Studio beta identity and job control plane; no GPU instance or web hosting
+Description: Synth Forge beta identity and job control plane; no GPU instance or web hosting
 
 Parameters:
   AppOrigin:
@@ -15,7 +15,7 @@ Resources:
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: synth-studio-beta
+      UserPoolName: synth-forge-beta
       UsernameAttributes: [email]
       AutoVerifiedAttributes: [email]
       Policies:
@@ -30,7 +30,7 @@ Resources:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       UserPoolId: !Ref UserPool
-      ClientName: synth-studio-cloud
+      ClientName: synth-forge-cloud
       GenerateSecret: false
       AllowedOAuthFlowsUserPoolClient: true
       AllowedOAuthFlows: [code]

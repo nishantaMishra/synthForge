@@ -28,7 +28,7 @@ def verification_graph():
         'manual': provider['id'] == 'google', 'details': {'url': provider['url'], 'mode': 'manual' if provider['id'] == 'google' else 'automatic'},
     } for provider in PROVIDERS]
     nodes.append({'id': 'verify-report', 'type': 'VerificationReport', 'label': 'Save verification report',
-                  'tool': 'Synth Studio', 'stage': 7,
+                  'tool': 'Synth Forge', 'stage': 7,
                   'description': 'Save provider responses and captured results for the final image, then end the run.',
                   'details': {'retries': 0, 'automatic_regeneration': False}})
     return {'nodes': nodes, 'edges': [
@@ -73,7 +73,7 @@ class Verification:
                 report = json.loads(file.read_text())
                 # Never silently resubmit a file after an interrupted server run.
                 if report['status'] not in TERMINAL:
-                    report.update(status='error', message='Studio restarted before checks finished. Use the provider links to check manually.', finished_at=timestamp())
+                    report.update(status='error', message='Synth Forge restarted before checks finished. Use the provider links to check manually.', finished_at=timestamp())
                     for provider in report['providers']:
                         if provider['outcome'] in ('pending', 'checking'):
                             provider.update(outcome='unavailable', message=report['message'])
