@@ -22,10 +22,13 @@ ownership on every upload, job, status, output, and download route.
 
 ## Implementation boundaries
 
-- Next.js: identity, pricing and billing UI, entitlement checks, usage metering,
-  upload and job APIs, and a page for the processing workspace.
+- Next.js: Cognito sign-in and guarded upload/job APIs are implemented. Pricing,
+  billing UI, entitlement checks, usage metering, and the processing workspace
+  still need to be connected.
 - AWS control plane: job queue, private storage for input and output, a job-state
   database, and a trigger that starts a stopped GPU worker when work arrives.
+  `cloud-infra/core.yaml` defines the first three resources and Cognito, but
+  has not been deployed; the GPU trigger is still pending.
 - GPU worker: the existing ComfyUI graph and model files, isolated from the
   public internet. It stops after the queue is empty and the idle window expires.
 - Text worker: Ollama and Desklib can initially run on the same worker, with
@@ -37,8 +40,8 @@ ownership on every upload, job, status, output, and download route.
 
 ## Current prerequisites and blockers
 
-- The supplied private registry token received HTTP 401. Obtain a fresh token,
-  then run `bash setup-monetization-skill.sh` and enter it at the local prompt.
+- The beta skill is installed and linked to this repository. Its JS/TS SDK must
+  be wired to the Next.js layer; it does not instrument the Python engine.
 - The account has $100 of remaining AWS credits and is on the paid plan. Credits
   are not a spending cap. Confirm service eligibility before launching a GPU.
 - The AWS Price List API showed `g6e.xlarge` On-Demand Linux compute at
@@ -49,7 +52,9 @@ ownership on every upload, job, status, output, and download route.
   approved; the workload still needs a memory and performance check.
 - The AWS CLI sign-in is currently a temporary root session. Deployment should
   use a dedicated, least-privilege identity instead of root credentials.
-- This folder is not yet a Git repository. The beta skill describes delivering
-  its changes as a pull request, which requires a Git repository and remote.
+- This folder has a local Git repository and an `aws-cloud-demo` branch. It has
+  no remote, so a pull request cannot be opened yet.
 
 No cloud resources have been deployed, and no payment flow has been activated.
+The proposed beta price is in `cloud-infra/pricing-proposal.md` and requires
+owner approval before any AWS App Monetization plan is created.
