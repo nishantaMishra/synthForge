@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Synth Studio</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23bbf77b'/%3E%3Cpath d='M16 42V22l16 20V22l16 20' stroke='%23131617' stroke-width='6' fill='none'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/controls.css?v=text-workflow-2"><script type="module" src="/static/app.js?v=text-workflow-2"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-icon">S</span><span>Synth <b>Studio</b></span><span class="edition">LOCAL EDITION</span></a>
+    <div class="view-switch" role="group" aria-label="Workspace view"><button id="processView" class="selected" aria-pressed="true">◈ Process</button><button id="minimalView" aria-pressed="false">▣ Minimal</button></div>
+    <div class="connection"><i id="connectionDot"></i><span id="connectionText">Starting engine</span></div>
+  </header>
+  <main>
+    <section id="engineBanner" class="engine-banner" role="status" hidden><strong>CPU processing — much slower than GPU</strong><span>This engine is using your processor. Sampling can take several minutes per step. For GPU processing, restart Studio without <code>--cpu</code>; resolve any NVIDIA driver fault first.</span></section>
+    <section class="intro"><div><p id="workspaceEyebrow" class="eyebrow">IMAGE WORKSPACE</p><h1 id="workspaceTitle">Your image. Every step, visible.</h1><p id="workspaceDescription" class="subtext">Follow the reconstruction as it happens, or keep your focus on the result.</p></div><div class="device"><span class="device-dot"></span><span id="deviceName">Connecting to local GPU</span></div></section>
+    <div class="media-switch" role="group" aria-label="File type"><button id="imageMode" class="selected" aria-pressed="true">Images</button><button id="textMode" aria-pressed="false">Text files</button></div>
+    <section class="toolbar">
+      <div class="toolbar-left"><span class="workflow-tag">↳</span><div><strong id="workflowName">Image reconstruction</strong><small id="workflowDescription">Reconstruction → final image → provenance checks</small></div></div>
+      <div class="toolbar-actions"><button id="settingsButton" class="quiet" aria-expanded="true">Hide settings</button><button id="stopButton" class="quiet stop" hidden>Stop run</button><button id="runButton" class="primary" disabled>▶ Run image</button></div>
+    </section>
+    <section id="settings" class="settings-panel">
+      <label>Adaptive level <code>adaptive_level</code><input id="adaptiveLevel" type="number" min="1" max="10" step="1" value="6"></label>
+      <label>Minimum denoise <code>denoise_min</code><input id="denoiseMin" type="number" min="0" max="1" step="0.005" value="0.08"></label>
+      <label>Maximum denoise <code>denoise_max</code><input id="denoiseMax" type="number" min="0" max="1" step="0.005" value="0.15"></label>
+      <p>Choose these values before running. They are saved in this browser and sent directly to the adaptive denoise node. Less denoise usually preserves more detail. <span id="settingsRunHint"></span></p>
+    </section>
+    <section id="textSettings" class="settings-panel text-settings" hidden>
+      <label>Local text model<select id="textModel" aria-label="Local text model"></select></label>
+      <label>Maximum wording change (%)<input id="textEditLimit" type="number" min="0" max="100" step="1" value="12"></label>
+      <p>Keep edits small. Proposed edits are checked for facts, formatting, and meaning; passages that fail a check retain their original wording. Desklib scores the final output once.</p>
+    </section>
+    <div id="notice" class="notice" role="alert" hidden></div>
+    <section id="imageWorkspace" class="image-grid">
+      <article class="image-card"><div class="card-head"><h2><span class="number">01</span> Input</h2><button id="replaceButton" class="text-button">Choose image</button></div>
+        <label id="dropZone" class="image-area upload" tabindex="0" aria-label="Upload input image"><input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff,image/svg+xml,.svg" hidden><img id="inputImage" alt="Input image" hidden><span id="uploadHint" class="empty"><span class="upload-icon">↥</span><strong>Drop an image here</strong><span>or click to browse</span><small>PNG, JPG, WEBP, SVG · up to 100 MB</small></span></label>
+        <div class="card-foot"><span id="inputName">No image selected</span><span id="inputSize">—</span></div>
+      </article>
+      <article class="image-card"><div class="card-head"><h2><span class="number">02</span> Output</h2><a id="downloadOutput" class="text-button" hidden download>↓ Download</a></div>
+        <div class="image-area"><img id="outputImage" alt="Processed output image" hidden><span id="outputHint" class="empty"><span class="output-icon">◇</span><strong>Your result appears here</strong><span>Upload an image and start a run</span></span><span id="previewBadge" class="preview-badge" hidden>INTERMEDIATE PREVIEW</span></div>
+        <div class="card-foot"><span id="outputName">Waiting for a run</span><span id="outputSize">—</span></div>
+      </article>
+      <article class="image-card comparison-card"><div class="card-head"><h2><span class="number">03</span> Compare</h2><button id="downloadComparison" class="text-button" hidden>↓ Save comparison</button></div>
+        <div id="comparisonArea" class="image-area compare-area"><div id="comparisonImages" hidden><img id="compareAfter" alt="Processed image for comparison"><img id="compareBefore" alt="Original image for comparison"><div id="compareLine"><span>↔</span></div><span class="compare-label before-label">INPUT</span><span class="compare-label after-label">OUTPUT</span></div><span id="compareHint" class="empty"><span class="output-icon">◧</span><strong>A closer look</strong><span>Slide between original and result</span></span></div>
+        <div class="card-foot compare-foot"><input id="compareSlider" type="range" min="0" max="100" value="50" aria-label="Before and after comparison"><span>Before / after</span></div>
+      </article>
+    </section>
+    <section id="textWorkspace" class="text-grid" hidden>
+      <article class="image-card text-card"><div class="card-head"><h2><span class="number">01</span> Input text</h2><button id="chooseText" class="text-button">Choose text file</button></div>
+        <div id="textDropZone" class="text-area"><input id="textFileInput" type="file" accept="text/plain,text/markdown,.txt,.md,.text" hidden><textarea id="textInputPreview" aria-label="Input text preview" readonly hidden></textarea><span id="textUploadHint" class="empty"><strong>Choose or drop a text file</strong><span>TXT, Markdown · up to 2 MB</span></span></div>
+        <div class="card-foot"><span id="textInputName">No text file selected</span><span id="textInputSize">—</span></div>
+      </article>
+      <article class="image-card text-card"><div class="card-head"><h2><span class="number">02</span> Output text</h2><a id="downloadText" class="text-button" download hidden>↓ Download text</a></div>
+        <div class="text-area"><textarea id="textOutputPreview" aria-label="Output text preview" readonly hidden></textarea><span id="textOutputHint" class="empty"><strong>Your text output appears here</strong><span>The original file is retained</span></span></div>
+        <div class="card-foot"><span id="textOutputName">Waiting for a run</span><span id="textOutputSize">—</span></div>
+      </article>
+      <article class="image-card text-card"><div class="card-head"><h2><span class="number">03</span> Compare text</h2></div>
+        <div class="text-area"><pre id="textDiff" class="text-diff" hidden></pre><span id="textCompareHint" class="empty"><strong>Review the wording changes</strong><span>Meaning checks accompany each accepted edit</span></span></div>
+        <div class="card-foot"><span id="textCompareSummary">Changes appear here</span></div>
+      </article>
+    </section>
+    <p id="textPreviewNote" class="text-preview-note" hidden>Previews show the first 50,000 characters. The downloaded file contains the full output.</p>
+    <section class="run-status" aria-live="polite"><div><i id="runDot"></i><strong id="runStatus">Ready when you are</strong><span id="runDetail">Choose an image to begin</span></div><span id="elapsed">00:00</span><div class="status-progress"><span id="overallProgress"></span></div></section>
+    <section id="processSection" class="process-section">
+      <article class="graph-panel"><div class="panel-head"><div><p class="eyebrow">LIVE PIPELINE</p><h2 id="graphTitle">Watch your image take shape</h2></div><div class="graph-controls"><button id="revealButton" class="quiet" aria-pressed="false">Show full graph</button><button id="followButton" class="quiet selected" aria-pressed="true">Follow live</button><button id="zoomOut" class="icon-button" aria-label="Zoom out">−</button><span id="zoomLabel">100%</span><button id="zoomIn" class="icon-button" aria-label="Zoom in">+</button></div></div>
+        <div class="stages"><span>01 Prepare</span><span>02 Load models</span><span>03 Reconstruct</span><span>04 Detect regions</span><span>05 Refine</span><span>06 Save</span><span>07 Verify</span><span>08 Report</span></div>
+        <div id="graphViewport" class="graph-viewport"><div id="graphEmpty" class="graph-empty"><div class="ghost-path"><span>↥</span><i></i><span>◇</span><i></i><span>✓</span></div><h3 id="graphEmptyTitle">The graph unfolds as your image runs</h3><p id="graphEmptyDescription">Each tool appears when it starts working. Connections show how the image travels between steps.</p><small>Want to explore first? Select “Show full graph”.</small></div><svg id="graph" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Live workflow graph"></svg></div>
+        <div class="graph-legend"><span><i class="legend-running"></i> Running</span><span><i class="legend-done"></i> Complete</span><span><i class="legend-cache"></i> Cached</span><span><i class="legend-pending"></i> Pending / hidden</span><span><i class="legend-review"></i> Manual / cancelled</span><span id="nodeCount">0 tools revealed</span></div>
+      </article>
+      <aside class="activity-panel"><div class="panel-head"><div><p class="eyebrow">BEHIND THE SCENES</p><h2>What’s happening</h2></div><button id="downloadLog" class="icon-button" aria-label="Download activity log">↓</button></div>
+        <div id="currentTool" class="current-tool"><span class="live-label">CURRENT TOOL</span><h3 id="toolTitle">Waiting to begin</h3><span id="toolPackage" class="tool-package">Local processing</span><p id="toolDescription">Once you start a run, you’ll see the active tool and a description of its work here.</p><div id="nodeActions" class="node-actions" hidden></div><div id="toolProgress" hidden><div class="tool-progress-track"><i id="toolProgressFill"></i></div><small id="toolProgressText"></small></div><details id="toolDetails" hidden><summary>Technical details</summary><pre id="toolDetailsText"></pre></details></div>
+        <div class="activity-heading"><h3>Activity</h3><span id="logCount">0 events</span></div><ol id="activityLog" class="activity-log"><li class="log-empty">The activity log will appear here as tools run.</li></ol>
+      </aside>
+    </section>
+    <footer><span id="footerProcessing"><i></i> Generation runs locally · final image checked with Claude and uploaded to OpenAI for verification</span><span>Synth Studio / independent workspace</span></footer>
+  </main>
+</body>
+</html>

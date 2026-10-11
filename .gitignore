@@ -1,0 +1,16 @@
+ComfyUI/
+Synthid-Bypass/
+runtime/
+logs/
+studio/qa/node_modules/
+studio/node_modules/
+studio/models/
+data/
+studio/qa/artifacts/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+.npmrc
+secrets/

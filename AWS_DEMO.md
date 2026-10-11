@@ -1,0 +1,52 @@
+# AWS cloud demo
+
+This project is currently a localhost-only Python/aiohttp application. Its image
+engine is ComfyUI and its text engine is Ollama. The AWS App Monetization private
+beta does not host either engine. Its automatic billing instrumentation supports
+Next.js during the beta, and its Stripe Connect payments are for evaluation.
+
+## Intended user flow
+
+1. Sign in with a verified account.
+2. See the available plan and complete the beta checkout.
+3. Upload a file and request a run. The cloud service checks the user's plan and
+   records the billable action before dispatching work.
+4. A GPU worker starts on demand, processes the job, and stores the result for
+   that user. The web app displays status and lets the user download the result.
+5. The GPU worker stops after an idle period. Persistent storage and the web
+   entry point may continue to incur charges.
+
+An arbitrary user-entered ID cannot be used as authentication or as proof of a
+paid plan. The identity provider must verify the user, and the server must check
+ownership on every upload, job, status, output, and download route.
+
+## Implementation boundaries
+
+- Next.js: identity, pricing and billing UI, entitlement checks, usage metering,
+  upload and job APIs, and a page for the processing workspace.
+- AWS control plane: job queue, private storage for input and output, a job-state
+  database, and a trigger that starts a stopped GPU worker when work arrives.
+- GPU worker: the existing ComfyUI graph and model files, isolated from the
+  public internet. It stops after the queue is empty and the idle window expires.
+- Text worker: Ollama and Desklib can initially run on the same worker, with
+  separate resource limits. Model choice must be based on models actually
+  installed and tested on the selected instance.
+- AWS App Monetization: run its private beta skill against the Next.js codebase
+  after AWS resources and an identity provider exist. Review its generated code,
+  then connect entitlements and metering to the server-side job submission path.
+
+## Current prerequisites and blockers
+
+- The supplied private registry token received HTTP 401. Obtain a fresh token,
+  then run `bash setup-monetization-skill.sh` and enter it at the local prompt.
+- The account has $100 of remaining AWS credits and is on the paid plan. Credits
+  are not a spending cap. Confirm service eligibility before launching a GPU.
+- The account's `us-east-1` On-Demand G/VT quota was 0. A request for 4 vCPUs
+  was submitted on 2026-10-11 and is pending. This permits one `g6e.xlarge` if
+  approved; the workload still needs a memory and performance check.
+- The AWS CLI sign-in is currently a temporary root session. Deployment should
+  use a dedicated, least-privilege identity instead of root credentials.
+- This folder is not yet a Git repository. The beta skill describes delivering
+  its changes as a pull request, which requires a Git repository and remote.
+
+No cloud resources have been deployed, and no payment flow has been activated.

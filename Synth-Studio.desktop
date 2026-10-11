@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Synth Studio
+Comment=Independent image workspace with live process and minimal views
+Exec=/home/nishant/github/synth/start-studio.sh
+Terminal=true
+Categories=Graphics;Development;
+StartupNotify=false
