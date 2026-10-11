@@ -22,12 +22,14 @@ the stable Cognito `sub` used for job ownership and future billing.
 
 ## Job contract
 
-- `POST /api/uploads`: multipart form field `file`; accepts PNG, JPEG, WebP,
-  PDF, or plain text up to 20 MB. Returns an `inputKey` under that user's private
+- `POST /api/uploads`: multipart form field `file`; accepts PNG, JPEG, or WebP
+  up to 20 MB, or `.txt`, `.md`, or `.text` up to 2 MB. Returns an `inputKey` under that user's private
   prefix. Unavailable until entitlement integration is complete.
-- `POST /api/jobs`: JSON `{ "kind": "image" | "text", "prompt": "...", "inputKey": "..." }`.
-  Stores an owned job in DynamoDB and sends its ID to SQS. Unavailable until
-  entitlement integration is complete.
+- `POST /api/jobs`: JSON with `kind` (`image` or `text`) and `inputKey`. Image
+  jobs can provide `adaptiveLevel`, `denoiseMin`, and `denoiseMax`; text jobs can
+  provide `editLimit` and `model`. The selected model must be installed on the
+  worker. The API stores an owned job in DynamoDB and sends its ID to SQS.
+  Unavailable until entitlement integration is complete.
 - `GET /api/jobs/{id}`: returns status only to the owning user. A succeeded job
   can return a five-minute signed download URL for an output in that user's
   prefix.
