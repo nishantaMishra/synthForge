@@ -1,4 +1,31 @@
-# Verification — 10 October 2026
+# Validation
+
+## Local hardware only — 13 October 2026
+
+AWS deployment templates, the hosted web app and worker, setup routes and UI,
+monetization setup, and generated cloud state were removed. Image runs now end
+when the local ComfyUI engine saves the result. External image checker uploads,
+their browser worker, and their API routes were removed. Text editing and Desklib
+scoring continue to use local models.
+
+- Five API checks passed for localhost binding, rejection of removed cloud and
+  image-verification routes, the local image graph, image submission to the
+  loopback engine, shared job-ID validation, and no-store headers on client assets.
+- Image UI fixtures passed for completion, missing output, cancellation, and
+  restoration of older sessions without resuming external checks.
+- Existing SVG preparation and text UI checks passed, as did all ten text
+  preservation and lifecycle tests. Python and JavaScript syntax checks passed.
+- These checks used fixtures and did not run full diffusion inference or submit
+  files to external services.
+
+The running app was restarted with the updated server. Live HTTP checks confirmed
+the local-only HTML and JavaScript use `Cache-Control: no-store`, and removed
+cloud setup and image-verification URLs return 404. An existing browser page must
+be refreshed to replace its already loaded UI.
+
+The entries below record earlier versions of the application.
+
+## Original verification — 10 October 2026
 
 - Independent copy: ten model files have matching sizes and different inodes;
   engine entry point, server, execution code, and workflow match the original.

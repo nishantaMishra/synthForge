@@ -12,13 +12,6 @@ const url = 'http://127.0.0.1:8190';
   const browser = await chromium.launch({headless:true, executablePath:'/home/nishant/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome', args:['--no-sandbox']});
   const page = await browser.newPage({viewport:{width:1536,height:1120}});
   const failures=[];page.on('pageerror',e=>failures.push(e.message));
-  // This QA image stays local: provider checks use a report fixture.
-  await page.route('**/api/verification/*',route=>route.fulfill({json:{
-    prompt_id:route.request().url().split('/').pop(),status:'complete',message:'QA fixture: no external submission',
-    providers:[{id:'claude',name:'Claude',url:'https://claude.com/check-files',outcome:'not_detected',message:'QA fixture'},
-      {id:'openai',name:'OpenAI',url:'https://openai.com/research/verify/',outcome:'not_detected',message:'QA fixture'},
-      {id:'google',name:'Google SynthID',url:'https://synthid.com/',outcome:'manual',message:'Manual check'}]
-  }}));
   await page.goto(url);
   await page.waitForFunction(()=>document.getElementById('connectionText').textContent==='Engine connected');
   assert.equal(await page.locator('.node-card').count(),0);
@@ -29,8 +22,8 @@ const url = 'http://127.0.0.1:8190';
   assert.equal(await page.locator('.node-card').count(),0);
   const realGraph=await (await page.request.get(url+'/api/graph')).json();
   await page.route('**/api/graph',route=>route.fulfill({json:{
-    nodes:realGraph.nodes.filter(n=>['11','568','62'].includes(n.id) || n.id.startsWith('verify-')),
-    edges:[{from:'11',to:'568',input:'image'},{from:'568',to:'62',input:'images'},...realGraph.edges.filter(edge=>edge.to.startsWith('verify-'))]
+    nodes:realGraph.nodes.filter(n=>['11','568','62'].includes(n.id)),
+    edges:[{from:'11',to:'568',input:'image'},{from:'568',to:'62',input:'images'}]
   }}));
   await page.reload();
   await page.waitForFunction(()=>document.getElementById('connectionText').textContent==='Engine connected');

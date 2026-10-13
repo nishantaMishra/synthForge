@@ -1,7 +1,6 @@
 {
   "private": true,
   "type": "module",
-  "description": "Browser runtime for Synth Forge’s post-generation provenance checks",
-  "scripts": {"dev": "../start-forge.sh"},
-  "dependencies": {"playwright": "1.64.0"}
+  "description": "Local image and text workspace for Synth Forge",
+  "scripts": {"dev": "../start-forge.sh"}
 }

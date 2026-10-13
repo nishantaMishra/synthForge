@@ -1,17 +1,13 @@
 # Synth Forge
 
-A separate image workspace built around the copied Synthid-Bypass V2 workflow.Works locally and in AWS cloud.
+A local image and text workspace built around the copied Synthid-Bypass V2 workflow. Processing runs on this device's GPU or CPU.
 
 ## Source checkout
 
 This repository contains the Synth Forge interface, the image workflow under
-`studio/workflows/image-reconstruction.json`, and the cloud deployment code.
-Model weights, installed dependencies, uploads, outputs, logs, AWS credentials,
-and the private monetization skill are excluded from Git.
-
-For the independent CPU cloud demo, follow
-[cloud-infra/README.md](cloud-infra/README.md). Docker builds its dependencies
-without needing the local ComfyUI installation.
+`studio/workflows/image-reconstruction.json`, and the local processing adapters.
+Model weights, installed dependencies, uploads, outputs, and logs are excluded
+from Git.
 
 ## Start
 
@@ -24,14 +20,9 @@ Open **http://127.0.0.1:8190**. The launcher also starts this copy's ComfyUI eng
 on port **8191**. The original installation on port 8188 is independent.
 Press Ctrl+C in the launch terminal to stop Synth Forge and its engine.
 
-The **Use cloud** button explains cloud availability. The cloud workspace has
-not been deployed yet, so it currently keeps users in the local app. After the
-operator deploys and tests the cloud web app, use **Use cloud → Owner: set up AWS**
-to save its HTTPS address (or set `SYNTH_CLOUD_URL` when launching Synth Forge); the
-button will then open that workspace. End
-users sign in there. They do not enter an AWS account ID or registry token.
-Cloud resources and billing remain inactive until the operator completes their
-setup. See [AWS_DEMO.md](AWS_DEMO.md) for the deployment state.
+The interface and image engine listen on localhost. Image reconstruction uses
+the local ComfyUI engine; text editing uses the local Ollama service. No account,
+hosted workspace, or billing setup is required.
 
 For CPU testing: `./start-forge.sh --cpu`. CPU diffusion is substantially slower.
 If NVIDIA reports a fatal UVM error or “Node Reboot Required”, reboot the computer
@@ -62,16 +53,10 @@ an explicitly labelled Run image on CPU (slow) button.
 No image-quality or watermark-removal changes were made to the supplied pipeline.
 Segment Anything runs on the CPU to avoid exhausting GPU memory during face-boundary
 refinement; reconstruction and face detail sampling still use the GPU engine.
-After generation succeeds, Synth Forge checks the exact final image once with Claude
-and OpenAI, shows their responses, then ends the run. The output remains available
-for download during verification. Stop checks cancels verification. Google SynthID
-is listed as a manual check because its portal prohibits automated submissions.
-The process graph continues with Check Claude → Check OpenAI → Save verification
-report after Save final image. Google SynthID appears on a separate manual branch.
-Finished verification attempts display Done. Clicking a node shows the actual
-outcome and provider response, including timeouts or unavailable checks. Done
-means the attempt ended; it does not indicate a positive or negative detection.
-Checker and captured-result links are in the selected node’s details.
+Image runs finish after the local engine saves the final image. Images are not
+submitted to external provenance checkers. Text verification uses the local
+Desklib model; completed attempts display Done, with the estimate or failure
+message available in the selected node's details.
 The progress bar counts completed tools; it is not an estimate of remaining time.
 Some nodes load models without reporting an internal percentage. Graph clicks
 show a node's explanation and technical settings. Stop run cancels only that job.
@@ -117,25 +102,13 @@ The detector is installed in this workspace. To install it in a fresh copy:
 bash studio/install-desklib.sh
 ```
 
-Ollama must be running with an installed text model. No cloud API key is needed.
+Ollama must be running with an installed local text model. No API key is needed.
 
 ## Files
 
-Synth Forge uses Playwright’s Chromium or an existing cached Chromium. To select a
-different installed executable, set `SYNTH_VERIFY_BROWSER` before launching.
-No API keys are required. Checks run sequentially, with no automatic retries or
-changes to the generated image based on their results. Sign-in requirements,
-browser challenges, rate limits, changed interfaces, and network failures are
-reported as unavailable or inconclusive, never as negative detection results.
-
-Claude checks for its Content Credential:
-[Claude file checker](https://claude.com/check-files). OpenAI checks supported
-C2PA metadata and SynthID signals:
-[OpenAI verifier](https://openai.com/research/verify/).
-[Google SynthID](https://synthid.com/) is provided for manual verification.
-
-Reports, exact-byte image snapshots, SHA-256 hashes, and captured provider result
-screenshots are saved under `logs/verification/<job-id>/`. Save report downloads
-the JSON report from the Save verification report node’s details. Refreshing the page reconnects to the same check; restarting
-Synth Forge leaves interrupted checks marked unavailable without resubmitting images.
+Images and their metadata are saved in this installation's `ComfyUI/input/` and
+`ComfyUI/output/` directories. Text inputs and outputs are under `data/text/`.
+The Save verification report node in text mode downloads the local detector
+report. Processing and checks use installed local models; initial dependency
+and model installation requires downloads.
 

@@ -12,7 +12,7 @@ from uuid import uuid4
 
 import aiohttp
 from aiohttp import web
-from verification import job_id
+from jobs import job_id
 
 OLLAMA = 'http://127.0.0.1:11434'
 TEXT_GPU_LAYERS = int(os.environ.get('SYNTH_TEXT_NUM_GPU', '0'))
@@ -59,7 +59,7 @@ def text_graph():
     ]
     nodes = [{'id': identifier, 'label': label, 'tool': tool, 'description': description,
               'type': 'TextStep', 'stage': stage, 'details': {}} for stage, (identifier, label, tool, description) in enumerate(entries)]
-    nodes[5]['details'] = {'model': DESKLIB_MODEL, 'revision': DESKLIB_REVISION, 'device': 'CPU', 'url': 'https://desklib.com/ai-content-detector/'}
+    nodes[5]['details'] = {'model': DESKLIB_MODEL, 'revision': DESKLIB_REVISION, 'device': 'CPU', 'url': 'https://huggingface.co/desklib/ai-text-detector-v1.01'}
     return {'nodes': nodes, 'edges': [{'from': a['id'], 'to': b['id'], 'input': 'text'} for a, b in zip(nodes, nodes[1:])]}
 
 
@@ -360,7 +360,7 @@ class TextStudio:
                 self.node(report, 'text-save', 'finished', **report['output'])
                 report['status'] = 'checking'
                 self.node(report, 'verify-desklib', 'running', 'Checking the output with Desklib’s local open model.')
-                provider = {'id': 'desklib', 'name': 'Desklib', 'url': 'https://desklib.com/ai-content-detector/', 'outcome': 'unavailable'}
+                provider = {'id': 'desklib', 'name': 'Desklib', 'url': 'https://huggingface.co/desklib/ai-text-detector-v1.01', 'outcome': 'unavailable'}
                 try:
                     process = await asyncio.create_subprocess_exec(sys.executable, str(Path(__file__).with_name('desklib_worker.py')),
                         str(self.root / 'studio/models/desklib'), str(directory / filename), meta['encoding'], meta['bom'],

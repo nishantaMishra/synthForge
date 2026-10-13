@@ -4,9 +4,6 @@ runtime/
 logs/
 studio/qa/node_modules/
 studio/node_modules/
-cloud-web/node_modules/
-cloud-web/.next/
-cloud-web/.env.local
 studio/models/
 data/
 studio/qa/artifacts/
@@ -17,7 +14,6 @@ __pycache__/
 !.env.example
 .npmrc
 secrets/
-.monetize/
 .claude/
 .codex/
 .kiro/

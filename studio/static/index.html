@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Synth Forge</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23bbf77b'/%3E%3Cpath d='M16 42V22l16 20V22l16 20' stroke='%23131617' stroke-width='6' fill='none'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/controls.css?v=user-copy-1"><script type="module" src="/static/app.js?v=user-copy-1"></script>
+  <link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/controls.css?v=local-only-1"><script type="module" src="/static/app.js?v=local-only-1"></script>
 </head>
 <body>
   <header class="topbar">
@@ -13,12 +13,11 @@
   </header>
   <main>
     <section id="engineBanner" class="engine-banner" role="status" hidden><strong>CPU processing — much slower than GPU</strong><span>This engine is using your processor. Sampling can take several minutes per step. For GPU processing, restart Synth Forge without <code>--cpu</code>; resolve any NVIDIA driver fault first.</span></section>
-    <section class="processing-location" aria-label="Processing location"><div class="location-current"><span class="location-icon">▣</span><div><span class="location-label">ACTIVE WORKSPACE · THIS DEVICE</span><strong>Runs on this device</strong><small id="locationDescription">The Run image button uses your local engine.</small></div></div><button id="cloudButton" class="cloud-entry" type="button" aria-controls="cloudPanel" aria-expanded="false"><span id="cloudButtonLabel">☁ Cloud workspace</span><small id="cloudButtonStatus">Not launched · details</small></button></section>
-    <section id="cloudPanel" class="cloud-panel" aria-labelledby="cloudPanelTitle" hidden><div><p class="eyebrow">CLOUD WORKSPACE</p><h2 id="cloudPanelTitle">Cloud processing is not available yet</h2><p id="cloudPanelMessage" role="status">No cloud service has been launched. The Run button below uses this device.</p><p>Cloud processing will open a separate Synth Forge site. Users will sign in there, without entering an AWS account ID or registry token.</p></div><div class="cloud-panel-actions"><a href="/static/cloud-setup.html">Owner: view AWS setup ↗</a><button id="closeCloudPanel" type="button">Close</button></div></section>
+    <section class="processing-location" aria-label="Processing location"><div class="location-current"><span class="location-icon">▣</span><div><span class="location-label">LOCAL HARDWARE</span><strong>Runs on this device</strong><small id="locationDescription">The Run image button uses your local engine.</small></div></div></section>
     <section class="intro"><div><p id="workspaceEyebrow" class="eyebrow">IMAGE WORKSPACE</p><h1 id="workspaceTitle">Image reconstruction</h1><p id="workspaceDescription" class="subtext" hidden></p></div><div class="device"><span class="device-dot"></span><span id="deviceName">Connecting to local GPU</span></div></section>
     <div class="media-switch" role="group" aria-label="File type"><button id="imageMode" class="selected" aria-pressed="true">Images</button><button id="textMode" aria-pressed="false">Text files</button></div>
     <section class="toolbar">
-      <div class="toolbar-left"><span class="workflow-tag">↳</span><div><strong id="workflowName">Image reconstruction</strong><small id="workflowDescription">Reconstruction → final image → provenance checks</small></div></div>
+      <div class="toolbar-left"><span class="workflow-tag">↳</span><div><strong id="workflowName">Image reconstruction</strong><small id="workflowDescription">Reconstruction → final image</small></div></div>
       <div class="toolbar-actions"><button id="settingsButton" class="quiet" aria-expanded="true">Hide settings</button><button id="stopButton" class="quiet stop" hidden>Stop run</button><button id="runButton" class="primary" disabled>▶ Run image on this device</button></div>
     </section>
     <section id="settings" class="settings-panel">
@@ -65,16 +64,16 @@
     <section class="run-status" aria-live="polite"><div><i id="runDot"></i><strong id="runStatus">Ready when you are</strong><span id="runDetail">Choose an image to begin</span></div><span id="elapsed">00:00</span><div class="status-progress"><span id="overallProgress"></span></div></section>
     <section id="processSection" class="process-section">
       <article class="graph-panel"><div class="panel-head"><div><p class="eyebrow">PROCESSING</p><h2 id="graphTitle">Processing status</h2></div><div class="graph-controls"><button id="revealButton" class="quiet" aria-pressed="false">Show full graph</button><button id="followButton" class="quiet selected" aria-pressed="true">Follow live</button><button id="zoomOut" class="icon-button" aria-label="Zoom out">−</button><span id="zoomLabel">100%</span><button id="zoomIn" class="icon-button" aria-label="Zoom in">+</button></div></div>
-        <div class="stages"><span>01 Prepare</span><span>02 Load models</span><span>03 Reconstruct</span><span>04 Detect regions</span><span>05 Refine</span><span>06 Save</span><span>07 Verify</span><span>08 Report</span></div>
+        <div class="stages"><span>01 Prepare</span><span>02 Load models</span><span>03 Reconstruct</span><span>04 Detect regions</span><span>05 Refine</span><span>06 Save</span><span hidden>07 Report</span></div>
         <div id="graphViewport" class="graph-viewport"><div id="graphEmpty" class="graph-empty"><div class="ghost-path"><span>↥</span><i></i><span>◇</span><i></i><span>✓</span></div><h3 id="graphEmptyTitle">No active run</h3><p id="graphEmptyDescription">Choose a file and start processing.</p></div><svg id="graph" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Live workflow graph"></svg></div>
-        <div class="graph-legend"><span><i class="legend-running"></i> Running</span><span><i class="legend-done"></i> Complete</span><span><i class="legend-cache"></i> Cached</span><span><i class="legend-pending"></i> Pending / hidden</span><span><i class="legend-review"></i> Manual / cancelled</span><span id="nodeCount">0 tools revealed</span></div>
+        <div class="graph-legend"><span><i class="legend-running"></i> Running</span><span><i class="legend-done"></i> Complete</span><span><i class="legend-cache"></i> Cached</span><span><i class="legend-pending"></i> Pending / hidden</span><span><i class="legend-review"></i> Cancelled</span><span id="nodeCount">0 tools revealed</span></div>
       </article>
       <aside class="activity-panel"><div class="panel-head"><div><p class="eyebrow">RUN DETAILS</p><h2>Status and activity</h2></div><button id="downloadLog" class="icon-button" aria-label="Download activity log">↓</button></div>
         <div id="currentTool" class="current-tool"><span class="live-label">CURRENT TOOL</span><h3 id="toolTitle">Waiting to begin</h3><span id="toolPackage" class="tool-package">Local processing</span><p id="toolDescription">Start processing to view status.</p><div id="nodeActions" class="node-actions" hidden></div><div id="toolProgress" hidden><div class="tool-progress-track"><i id="toolProgressFill"></i></div><small id="toolProgressText"></small></div><details id="toolDetails" hidden><summary>Technical details</summary><pre id="toolDetailsText"></pre></details></div>
         <div class="activity-heading"><h3>Activity</h3><span id="logCount">0 events</span></div><ol id="activityLog" class="activity-log"><li class="log-empty">The activity log will appear here as tools run.</li></ol>
       </aside>
     </section>
-    <footer><span id="footerProcessing"><i></i> Generation runs locally · final image checked with Claude and uploaded to OpenAI for verification</span><span>Synth Forge / independent workspace</span></footer>
+    <footer><span id="footerProcessing"><i></i> Image processing runs on this device</span><span>Synth Forge / independent workspace</span></footer>
   </main>
 </body>
 </html>

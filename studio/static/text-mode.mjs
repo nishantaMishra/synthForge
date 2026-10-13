@@ -1,6 +1,6 @@
 const sessionFields=['input','output','promptId','started','ended','states','log','runSettings','phase','verification'];
 const textStages=['01 Read','02 Model','03 Edit','04 Meaning','05 Save','06 Verify','07 Report'];
-const imageStages=['01 Prepare','02 Load models','03 Reconstruct','04 Detect regions','05 Refine','06 Save','07 Verify','08 Report'];
+const imageStages=['01 Prepare','02 Load models','03 Reconstruct','04 Detect regions','05 Refine','06 Save'];
 
 export function createTextMode(api) {
   const {state,$,request,persist,notice,log,renderLog,renderGraph,layoutGraph,showTool,followNode,updateButtons,setStatus,finish,syncVerificationGraph,updateGraphProgress,configureInputGraph}=api;
@@ -48,9 +48,9 @@ export function createTextMode(api) {
     $('workspaceDescription').hidden=true;
     $('locationDescription').textContent=text?'The Run text button uses your local CPU and Ollama model.':'The Run image button uses your local engine.';
     $('workflowName').textContent=text?'Text reconstruction':'Image reconstruction';
-    $('workflowDescription').textContent=text?'Light wording edits → meaning checks → text file → Desklib':'Reconstruction → final image → provenance checks';
+    $('workflowDescription').textContent=text?'Light wording edits → meaning checks → text file → Desklib':'Reconstruction → final image';
     $('engineBanner').hidden=true;
-    $('footerProcessing').textContent=text?'Text processing and Desklib scoring run locally':'Generation runs locally · final image checked with Claude and uploaded to OpenAI for verification';
+    $('footerProcessing').textContent=text?'Text processing and Desklib scoring run locally':'Image processing runs on this device';
     for(const media of ['image','text']) {
       $(media+'Mode').classList.toggle('selected',media===state.media);
       $(media+'Mode').setAttribute('aria-pressed',String(media===state.media));

@@ -2,7 +2,6 @@
 import argparse
 import asyncio
 import json
-import os
 from pathlib import Path
 import signal
 import subprocess
@@ -11,24 +10,12 @@ from urllib.parse import urlsplit
 import aiohttp
 from aiohttp import web
 from workflow import compile_workflow, describe_graph, make_run
-from verification import Verification, job_id, verification_graph
+from jobs import job_id
 from text_pipeline import TextStudio, text_graph
-from cloud_setup import CloudSetup
-from cloud_config import workspace_url
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = Path(__file__).parent / 'static'
 WORKFLOW = ROOT / 'studio/workflows/image-reconstruction.json'
-
-
-def cloud_workspace_url():
-    """Expose only an operator-configured web origin, never AWS credentials."""
-    return workspace_url()
-
-
-async def cloud_status(_request):
-    url = cloud_workspace_url()
-    return web.json_response({'available': bool(url), 'url': url})
 
 
 @web.middleware
@@ -36,7 +23,10 @@ async def local_origin(request, handler):
     origin = request.headers.get('Origin')
     if request.headers.get('Sec-Fetch-Site') == 'cross-site' or (origin and urlsplit(origin).netloc != request.host):
         raise web.HTTPForbidden(text='Open Synth Forge directly on its localhost address.')
-    return await handler(request)
+    response = await handler(request)
+    if request.path == '/' or request.path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 class Studio:
@@ -46,14 +36,12 @@ class Studio:
         self.template = None
         self.child = None
         self.workflow = json.loads(WORKFLOW.read_text())
-        self.verification = Verification(self, ROOT)
         self.text = TextStudio(self, ROOT)
 
     async def start(self, app):
         self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=180))
 
     async def close(self, app):
-        await self.verification.close()
         await self.text.close()
         await self.session.close()
 
@@ -67,7 +55,7 @@ class Studio:
                 stats = await response.json()
             if self.template is None:
                 self.template = compile_workflow(self.workflow, await self.registry())
-            return web.json_response({'ready': True, 'devices': stats['devices'], 'nodes': len(self.template), 'verification': True})
+            return web.json_response({'ready': True, 'devices': stats['devices'], 'nodes': len(self.template)})
         except (aiohttp.ClientError, asyncio.TimeoutError) as error:
             if self.child is not None and self.child.poll() is not None:
                 return web.json_response({'ready': False, 'message': 'Image engine stopped. Check logs/engine.log. If it reports a fatal CUDA error, reboot before starting again.'})
@@ -78,11 +66,7 @@ class Studio:
     async def graph(self, request):
         if self.template is None:
             self.template = compile_workflow(self.workflow, await self.registry())
-        graph = describe_graph(self.template)
-        checks = verification_graph()
-        graph['nodes'].extend(checks['nodes'])
-        graph['edges'].extend(checks['edges'])
-        return web.json_response(graph)
+        return web.json_response(describe_graph(self.template))
 
     async def run(self, request):
         body = await request.json()
@@ -106,8 +90,6 @@ class Studio:
                    'extra_data': {'extra_pnginfo': {'workflow': self.workflow}}}
         async with self.session.post(self.url + '/prompt', json=payload) as response:
             result = await response.read()
-            if response.status == 200:
-                self.verification.begin(identifier)
             return web.Response(body=result, status=response.status, content_type='application/json')
 
     async def proxy(self, request):
@@ -169,19 +151,12 @@ def main():
         child = subprocess.Popen(command, cwd=ROOT / 'ComfyUI', stdout=(logs / 'engine.log').open('ab'),
                                  stderr=subprocess.STDOUT, start_new_session=True)
     studio = Studio(args.backend_port)
-    cloud_setup = CloudSetup()
     studio.child = child
     app = web.Application(client_max_size=100 * 1024**2, middlewares=[local_origin])
     app.on_startup.append(studio.start)
     app.on_cleanup.append(studio.close)
     app.router.add_get('/', lambda request: web.FileResponse(STATIC / 'index.html'))
     app.router.add_get('/api/health', studio.health)
-    app.router.add_get('/api/cloud/status', cloud_status)
-    app.router.add_get('/api/cloud/setup/status', cloud_setup.status)
-    app.router.add_get('/api/cloud/setup/deployment', cloud_setup.deployment_status)
-    app.router.add_post('/api/cloud/setup/deployment', cloud_setup.deployment_action)
-    app.router.add_post('/api/cloud/setup/quota', cloud_setup.request_quota)
-    app.router.add_post('/api/cloud/setup/workspace', cloud_setup.save_workspace)
     app.router.add_get('/api/graph', studio.graph)
     app.router.add_post('/api/run', studio.run)
     app.router.add_get('/api/text/health', studio.text.health)
@@ -193,10 +168,6 @@ def main():
     app.router.add_get('/api/text/jobs/{identifier}/preview', studio.text.preview)
     app.router.add_get('/api/text/jobs/{identifier}/output', studio.text.download)
     app.router.add_post('/api/text/jobs/{identifier}/cancel', studio.text.cancel)
-    app.router.add_get('/api/verification/{identifier}', studio.verification.get)
-    app.router.add_post('/api/verification/{identifier}', studio.verification.start)
-    app.router.add_post('/api/verification/{identifier}/cancel', studio.verification.cancel)
-    app.router.add_get('/api/verification/{identifier}/{provider}.png', studio.verification.evidence)
     app.router.add_get('/comfy/ws', studio.socket)
     app.router.add_route('*', '/comfy/{route:.*}', studio.proxy)
     app.router.add_static('/static/', STATIC)

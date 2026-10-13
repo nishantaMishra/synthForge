@@ -1,4 +1,4 @@
-import {createTextMode} from './text-mode.mjs?v=user-copy-1';
+import {createTextMode} from './text-mode.mjs?v=local-only-1';
 const $ = id => document.getElementById(id);
 const svgNS = 'http://www.w3.org/2000/svg';
 // Carry existing browser sessions and settings into the renamed app.
@@ -22,41 +22,20 @@ const state = {clientId: saved?.clientId || crypto.randomUUID(), promptId: saved
   socket: null, showAll: false, follow: true, zoom: 1, positions: {}, previewUrl: null,
   mode: localStorage.getItem('synth-forge-view') || 'process', cpuMode:false,
   runSettings:saved?.runSettings || null, phase:saved?.phase || 'generation', verification:saved?.verification || null};
-let verificationLoading = false;
 let textMode=null;
 state.media=saved?.media || 'image';state.sessions=saved?.sessions || {};state.textOptions=saved?.textOptions || {model:null,edit_limit:.12};
-const verificationCompletionText='Your result is ready. Select a verification node for details.';
 const verificationOutcomeLabels={pending:'Waiting',checking:'Checking',detected:'Signal detected',not_detected:'No signal detected',
   unavailable:'No verification result returned',inconclusive:'Result needs review',manual:'Manual check needed',cancelled:'Check cancelled'};
 
-const cloudPanel=$('cloudPanel');
-function closeCloudPanel(){cloudPanel.hidden=true;$('cloudButton').setAttribute('aria-expanded','false');}
-$('closeCloudPanel').onclick=closeCloudPanel;
-function showCloudAvailability(cloud){
-  $('cloudButtonStatus').textContent=cloud.available?'Open separate site ↗':'Not launched · details';
+// Restore earlier image sessions through the local engine only.
+function restoreLocalImageSession(session) {
+  if (!session) return;
+  session.verification=null;
+  if (session.phase==='verification') session.phase='generation';
+  session.states=Object.fromEntries(Object.entries(session.states || {}).filter(([id])=>!id.startsWith('verify-')));
 }
-async function refreshCloudAvailability(){
-  try{showCloudAvailability(await request('/api/cloud/status'));}
-  catch{$('cloudButtonStatus').textContent='Availability unknown';}
-}
-$('cloudButton').onclick=async()=>{
-  if(!cloudPanel.hidden){closeCloudPanel();return;}
-  cloudPanel.hidden=false;
-  $('cloudButton').setAttribute('aria-expanded','true');
-  $('cloudPanelTitle').textContent='Checking cloud availability';
-  $('cloudPanelMessage').textContent='Checking whether a cloud workspace has been launched…';
-  try {
-    const cloud=await request('/api/cloud/status');
-    showCloudAvailability(cloud);
-    if(cloud.available){window.location.assign(cloud.url);return;}
-    $('cloudPanelTitle').textContent='Cloud processing is not available yet';
-    $('cloudPanelMessage').textContent='No cloud service has been launched. The Run button below uses this device.';
-  } catch(error) {
-    $('cloudPanelTitle').textContent='Cloud availability could not be checked';
-    $('cloudPanelMessage').textContent='This page still runs on your device. Check the local server and try again.';
-  }
-};
-refreshCloudAvailability();
+if (state.media==='image') restoreLocalImageSession(state);
+restoreLocalImageSession(state.sessions.image);
 
 function readSettings() {
   return {adaptive_level:Number($('adaptiveLevel').value),denoise_min:Number($('denoiseMin').value),denoise_max:Number($('denoiseMax').value)};
@@ -139,10 +118,9 @@ function updateButtons() {
   const text=state.media==='text';
   $('runButton').disabled = !state.ready || (!text && !state.socketReady) || !state.input || state.running;
   $('runButton').textContent = state.running ? (state.cpuMode ? 'Processing locally on CPU…' : 'Processing locally…') : (state.cpuMode ? '▶ Run image on this device · CPU (slow)' : '▶ Run image on this device');
-  if (state.running && state.phase === 'verification') $('runButton').textContent = 'Checking provenance…';
   if(text)$('runButton').textContent=state.running?'Processing text locally…':'▶ Run text on this device';
   $('stopButton').hidden = !state.running;
-  $('stopButton').textContent = state.phase === 'verification' ? 'Stop checks' : 'Stop run';
+  $('stopButton').textContent = 'Stop run';
   $('replaceButton').disabled = state.running;
   $('fileInput').disabled = state.running;
   for(const id of ['imageMode','textMode','textFileInput','chooseText','textModel','textEditLimit'])$(id).disabled=state.running;
@@ -179,17 +157,12 @@ function renderLog() {
   if (!state.log.length) return;
   $('activityLog').replaceChildren();
   for (const entry of state.log.slice(-150).reverse()) {
-    const providerEntry=entry.title.match(/^(Claude|OpenAI|Google SynthID) · (.+)$/);
-    const verificationEnd=['Image complete','Verification unavailable'].includes(entry.title) && /verification/i.test(entry.message);
-    const verificationResult=providerEntry && providerEntry[2]!=='checking';
-    const displayTitle=verificationResult ? `${providerEntry[1]} · ${providerEntry[2].startsWith('manual')?'manual check':providerEntry[2]==='cancelled'?'cancelled':'done'}` : verificationEnd?'Image complete':entry.title;
-    const displayMessage=verificationResult?'Select the node for details.':verificationEnd?verificationCompletionText:entry.message;
-    const li = document.createElement('li'); li.className = verificationResult || verificationEnd ? '' : entry.kind;
-    const title = document.createElement('span'); title.className = 'log-title'; title.textContent = displayTitle;
+    const li = document.createElement('li'); li.className = entry.kind;
+    const title = document.createElement('span'); title.className = 'log-title'; title.textContent = entry.title;
     const time = document.createElement('span'); time.className = 'log-time';
     time.textContent = new Date(entry.time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
     li.append(title, time);
-    if (displayMessage) { const text = document.createElement('span'); text.className = 'log-message'; text.textContent = displayMessage; li.append(text); }
+    if (entry.message) { const text = document.createElement('span'); text.className = 'log-message'; text.textContent = entry.message; li.append(text); }
     $('activityLog').append(li);
   }
 }
@@ -208,12 +181,8 @@ function showTool(id, live = false) {
   $('currentTool').querySelector('.live-label').textContent = live ? 'CURRENT TOOL' : 'SELECTED TOOL';
   $('nodeActions').replaceChildren();$('nodeActions').hidden=true;
   if (verification && !live) {
-    const provider=state.verification?.providers.find(provider=>'verify-'+provider.id===id);
-    if (provider || node.details?.url) {
-      const link=document.createElement('a');link.href=provider?.url || node.details.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open checker ↗';$('nodeActions').append(link);
-    }
-    if (provider?.evidence) {
-      const link=document.createElement('a');link.href=`/api/verification/${state.verification.prompt_id}/${provider.id}.png`;link.target='_blank';link.rel='noopener';link.textContent='View captured result ↗';$('nodeActions').append(link);
+    if (id==='verify-desklib' && node.details?.url) {
+      const link=document.createElement('a');link.href=node.details.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Model reference ↗';$('nodeActions').append(link);
     }
     if (id==='verify-report' && state.verification) {
       const button=document.createElement('button');button.className='text-button';button.textContent='↓ Save report';
@@ -262,24 +231,12 @@ function syncVerificationGraph() {
     state.states[id]={status:statuses[provider.outcome] || 'inconclusive',outcome:provider.outcome,message:provider.message};
     node.details={...node.details,outcome:provider.outcome,response:provider.message,checked_at:provider.checked_at || null};
   }
-  const terminal=['complete','error','cancelled'].includes(report.status);
   if (describe('verify-report')) {
     state.states['verify-report']={status:report.status==='complete' || report.status==='error'?'finished':report.status==='cancelled'?'cancelled':'pending',
       message:report.message, outcome:report.status==='complete'?'report_saved':null};
     describe('verify-report').details={prompt_id:report.prompt_id,sha256:report.sha256 || null,status:report.status,results:report.providers};
   }
   renderGraph();updateGraphProgress();
-  if (state.running && state.phase==='verification') {
-    const active=report.providers.find(provider=>provider.outcome==='checking') ||
-      (!terminal && report.providers.find(provider=>provider.outcome==='pending' && provider.id!=='google'));
-    const id=active ? 'verify-'+active.id : terminal ? 'verify-report' : null;
-    if (id && describe(id)) {
-      const changed=state.current!==id;state.current=id;showTool(id,true);
-      document.querySelectorAll('.stages span').forEach((el,i)=>el.classList.toggle('active',i===describe(id).stage));
-      if (changed) followNode(id);
-      if (!terminal) setStatus('Checking provenance',`${describe(id).label} · final image saved`);
-    }
-  }
 }
 function layoutGraph() {
   const nodes = state.graph.nodes;
@@ -482,55 +439,10 @@ function finish(title, message, error = false) {
   $('toolProgress').hidden = true;
   $('toolDetails').hidden=true;$('nodeActions').hidden=true;
 }
-async function verifyResult() {
-  if (verificationLoading || !state.running || !state.output) return;
-  state.phase='verification';updateButtons();persist();
-  const promptId=state.promptId;
-  verificationLoading=true;
-  setStatus('Checking provenance','Image saved · running Claude and OpenAI checks');
-  $('toolTitle').textContent='Check final image provenance';
-  $('toolPackage').textContent='Claude · OpenAI · Google SynthID';
-  $('toolDescription').textContent='One verification pass on the saved output. Google SynthID requires a manual check.';
-  $('toolProgress').hidden=true;
-  try {
-    const report=await request(`/api/verification/${promptId}`,{method:'POST'});
-    if (state.promptId!==promptId || !state.running) return;
-    notice();
-    const previous=state.verification;
-    state.verification=report;syncVerificationGraph();persist();
-    for (const provider of report.providers) {
-      if (provider.outcome!=='pending' && provider.outcome!==previous?.providers.find(p=>p.id===provider.id)?.outcome) {
-        const label=provider.outcome==='checking'?'checking':provider.outcome==='manual'?'manual check':provider.outcome==='cancelled'?'cancelled':'done';
-        log(`${provider.name} · ${label}`,provider.outcome==='checking'?'Checking the final image.':'Select the node for details.');
-      }
-    }
-    if (report.status==='complete') {
-      finish('Image complete',verificationCompletionText);
-    } else if (report.status==='error') finish('Image complete',verificationCompletionText);
-    else if (report.status==='cancelled') finish('Verification stopped','The generated image and any completed checks are available.');
-  } catch(error) {
-    if (!leavingPage && state.promptId===promptId && state.running) {
-      if ([400,401,403,404,405,410].includes(error.status)) {
-        const message=error.status===404 || error.status===405
-          ? 'Image saved, but this Synth Forge server cannot start verification for the job. Restart Synth Forge to load the updated server, then check the saved output.'
-          : 'Image saved, but verification was rejected: '+error.message;
-        state.verification={prompt_id:promptId,status:'error',message,output:state.output,providers:[
-          {id:'claude',name:'Claude',url:'https://claude.com/check-files',outcome:'unavailable',message},
-          {id:'openai',name:'OpenAI',url:'https://openai.com/research/verify/',outcome:'unavailable',message},
-          {id:'google',name:'Google SynthID',url:'https://synthid.com/',outcome:'manual',message:'Check the saved output on Google SynthID manually.'}]};
-        syncVerificationGraph();finish('Image complete',verificationCompletionText);notice();
-      } else {
-        setStatus('Verification connection interrupted','Image saved · reconnecting to the checks');
-        notice(error.message);
-      }
-    }
-  } finally {verificationLoading=false;}
-}
 async function loadResult() {
   if(state.media==='text'){await textMode?.poll();return true;}
   if (!state.promptId) return false;
   if (state.phase==='preparation') return false;
-  if (state.phase==='verification') {await verifyResult();return true;}
   const promptId = state.promptId;
   const history = await request(`/comfy/history/${promptId}`);
   if (state.promptId !== promptId || !state.running) return false;
@@ -545,7 +457,7 @@ async function loadResult() {
   if(final) {state.output = final;renderImages();persist();}
   if(run.status?.completed || run.status?.status_str==='error') {
     if(run.status.status_str === 'success') {
-      if (state.output) await verifyResult();
+      if (state.output) finish('Image complete','Your result is ready to download and compare.');
       else finish('Unable to load result','The completed job has no final output image.',true);
     }
     else {
@@ -561,7 +473,7 @@ function event(message) {
   const {type, data} = message;
   if (data.prompt_id && data.prompt_id !== state.promptId) return;
   if (!state.promptId || !state.graph) return;
-  if (state.phase === 'verification' || state.phase === 'preparation') return;
+  if (state.phase === 'preparation') return;
   if (!state.running && type !== 'executed') return;
   if (type === 'execution_start') {setStatus('Processing image','Preparing the workflow');log('Run started');}
   if (type === 'execution_cached') for (const id of data.nodes) updateNode(id, 'cached');
@@ -636,17 +548,8 @@ async function health() {
       state.cpuMode=info.devices[0]?.type==='cpu';
       $('engineBanner').hidden=!state.cpuMode;
       $('deviceName').textContent = info.devices[0]?.type === 'cpu' ? 'CPU mode · slower processing' : info.devices[0]?.name.replace(/^cuda:\d+ /,'').replace(/ : .*/,'') || 'Local image engine';
-      if(!state.graph || (info.verification && !describe('verify-report'))) {
+      if(!state.graph) {
         state.graph=await request('/api/graph');applyRunSettings();configureInputGraph();renderGraph();syncVerificationGraph();
-        if (info.verification && state.output && state.promptId && state.verification && !state.running) {
-          try {
-            // Restore the saved server result without submitting the image again.
-            state.verification=await request(`/api/verification/${state.promptId}`);
-            syncVerificationGraph();persist();notice();
-            setStatus('Image complete',verificationCompletionText);
-            followNode('verify-report');
-          } catch(error) {if (error.status!==404) console.warn('Report restore:',error.message);}
-        }
       }
       connectSocket();
     } else {
@@ -670,11 +573,6 @@ $('stopButton').onclick=async()=>{
   if (state.phase==='preparation') {
     updateNode('prepare-svg','cancelled');
     finish('Run stopped','SVG preparation was cancelled. No image job was submitted.');
-    return;
-  }
-  if (state.phase==='verification') {
-    try {await request(`/api/verification/${state.promptId}/cancel`,{method:'POST'});await verifyResult();}
-    catch(error){notice(error.message);}
     return;
   }
   try { const result=await request(`/comfy/api/jobs/${state.promptId}/cancel`,{method:'POST'});
@@ -712,4 +610,4 @@ else if(state.running)setStatus('Restoring run','Reconnecting to the local image
 else if(state.output)setStatus(state.media==='text'?'Text complete':'Image complete','Your result is ready to download and compare.');
 else if(state.input)setStatus('Ready to run',state.input.displayName||state.input.filename);
 health();setInterval(health,10000);
-setInterval(()=>{if(state.running && (state.media==='text' || state.socketReady || state.phase==='verification'))loadResult().catch(error=>console.warn('Run check:',error.message));},2000);
+setInterval(()=>{if(state.running && (state.media==='text' || state.socketReady))loadResult().catch(error=>console.warn('Run check:',error.message));},2000);
