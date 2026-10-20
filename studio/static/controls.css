@@ -32,4 +32,13 @@
 .graph-legend .legend-review{background:#ffce87}
 .stages{flex-wrap:wrap;gap:8px 16px}
 .graph-legend{flex-wrap:wrap;gap:10px 18px}
+.comparison-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.comparison-open{overflow:hidden}
+.comparison-dialog{width:calc(100% - 32px);height:calc(100vh - 32px);height:calc(100dvh - 32px);max-width:none;max-height:none;padding:0;border:0;border-radius:var(--radius);background:var(--panel);color:var(--text);box-shadow:0 24px 90px #0009}
+.comparison-dialog::backdrop{background:#080e10d9}
+.comparison-dialog[open]{display:flex}
+.comparison-dialog .comparison-card{display:flex;flex-direction:column;width:100%;min-height:0}
+.comparison-dialog .card-head,.comparison-dialog .card-foot{flex-shrink:0}
+.comparison-dialog .comparison-card .image-area{height:auto;min-height:0;flex:1}
+.comparison-dialog .compare-foot{height:56px}
 @media(max-width:580px){.engine-banner{top:4px;padding:12px}.engine-banner span{font-size:11px}.settings-panel{gap:15px}.settings-panel label{min-width:115px}.settings-panel input{width:115px}}

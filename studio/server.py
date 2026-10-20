@@ -99,12 +99,16 @@ class Studio:
         # ComfyUI permits inline SVG only for image requests. Preserve the browser's
         # destination header so its image-safe response branch can run.
         headers = {name: request.headers[name] for name in ('Content-Type', 'Sec-Fetch-Dest') if name in request.headers}
-        async with self.session.request(request.method, self.url + '/' + route, params=request.query,
-                                        data=await request.read(), headers=headers) as response:
-            response_headers = {name: response.headers[name] for name in (
-                'Content-Type', 'Content-Disposition', 'X-Content-Type-Options',
-                'Vary', 'Cache-Control', 'Content-Security-Policy') if name in response.headers}
-            return web.Response(body=await response.read(), status=response.status, headers=response_headers)
+        try:
+            async with self.session.request(request.method, self.url + '/' + route, params=request.query,
+                                            data=await request.read(), headers=headers) as response:
+                response_headers = {name: response.headers[name] for name in (
+                    'Content-Type', 'Content-Disposition', 'X-Content-Type-Options',
+                    'Vary', 'Cache-Control', 'Content-Security-Policy') if name in response.headers}
+                return web.Response(body=await response.read(), status=response.status, headers=response_headers)
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            return web.json_response({'error': {'message': 'The image engine is unavailable. Wait for it to connect, then try again.'}},
+                                     status=503, headers={'Cache-Control': 'no-store'})
 
     async def socket(self, request):
         ws = web.WebSocketResponse(heartbeat=20)

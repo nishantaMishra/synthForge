@@ -23,6 +23,7 @@ const state = {clientId: saved?.clientId || crypto.randomUUID(), promptId: saved
   mode: localStorage.getItem('synth-forge-view') || 'process', cpuMode:false,
   runSettings:saved?.runSettings || null, phase:saved?.phase || 'generation', verification:saved?.verification || null};
 let textMode=null;
+let engineNotice = null;
 state.media=saved?.media || 'image';state.sessions=saved?.sessions || {};state.textOptions=saved?.textOptions || {model:null,edit_limit:.12};
 const verificationOutcomeLabels={pending:'Waiting',checking:'Checking',detected:'Signal detected',not_detected:'No signal detected',
   unavailable:'No verification result returned',inconclusive:'Result needs review',manual:'Manual check needed',cancelled:'Check cancelled'};
@@ -106,8 +107,13 @@ async function request(path, options = {}) {
   return body;
 }
 function notice(message = '') {
+  engineNotice = null;
   $('notice').textContent = message;
   $('notice').hidden = !message;
+}
+function noticeEngine(message) {
+  notice(message);
+  engineNotice = message;
 }
 function imageUrl(image) {
   return `/comfy/view?${new URLSearchParams({filename: image.filename || image.name,
@@ -311,7 +317,7 @@ function followNode(id) {
 }
 async function upload(file) {
   if (!file || state.running) return;
-  if (!state.ready) return notice('The image engine is still starting. Wait for “Engine connected”, then choose your image.');
+  if (!state.ready) return noticeEngine('The image engine is not connected yet. Your previews will recover when it connects; then choose your image.');
   if (!file.type.startsWith('image/')) return notice('Choose an image file.');
   if (file.size > 100 * 1024**2) return notice('Choose an image smaller than 100 MB.');
   notice(); $('runButton').disabled = true; setStatus('Uploading image', file.name);
@@ -333,10 +339,18 @@ async function upload(file) {
 function renderImages() {
   if(state.media==='text'){textMode?.render();return;}
   $('inputImage').hidden = !state.input; $('uploadHint').hidden = !!state.input;
+  $('uploadHint').querySelector('strong').textContent = 'Drop an image here';
   if (state.input) {
     $('inputName').textContent = state.input.displayName || state.input.filename;
-    $('inputImage').onload = () => $('inputSize').textContent = `${$('inputImage').naturalWidth} × ${$('inputImage').naturalHeight}`;
-    $('inputImage').onerror = () => $('inputSize').textContent = 'Preview unavailable';
+    $('inputImage').onload = () => {
+      $('inputImage').hidden = false; $('uploadHint').hidden = true;
+      $('inputSize').textContent = `${$('inputImage').naturalWidth} × ${$('inputImage').naturalHeight}`;
+    };
+    $('inputImage').onerror = () => {
+      $('inputImage').hidden = true; $('uploadHint').hidden = false;
+      $('uploadHint').querySelector('strong').textContent = 'Input preview unavailable';
+      $('inputSize').textContent = 'Preview unavailable';
+    };
     $('inputImage').src = imageUrl(state.input);
   }
   $('outputImage').hidden = !state.output; $('outputHint').hidden = !!state.output;
@@ -346,15 +360,48 @@ function renderImages() {
   $('downloadOutput').hidden = !state.output;
   $('comparisonImages').hidden = !state.output || !state.input;
   $('compareHint').hidden = !!state.output && !!state.input;
-  $('downloadComparison').hidden = !state.output || !state.input;
-  $('compareSlider').disabled = !state.output;
+  $('downloadComparison').hidden = true;
+  $('expandComparison').hidden = true;
+  $('compareSlider').disabled = true;
   if (state.output) {
     const url = imageUrl(state.output);
+    $('outputImage').onload = () => {
+      $('outputImage').hidden = false; $('outputHint').hidden = true;
+      $('outputSize').textContent = `${$('outputImage').naturalWidth} × ${$('outputImage').naturalHeight}`;
+    };
+    $('outputImage').onerror = () => {
+      $('outputImage').hidden = true; $('outputHint').hidden = false;
+      $('outputHint').querySelector('strong').textContent = 'Output preview unavailable';
+      $('outputHint').querySelector('span:last-child').textContent = 'Saved images will retry when the engine connects';
+      $('outputSize').textContent = 'Preview unavailable';
+    };
     $('outputImage').src = url; $('outputName').textContent = state.output.filename;
-    $('outputImage').onload = () => $('outputSize').textContent = `${$('outputImage').naturalWidth} × ${$('outputImage').naturalHeight}`;
     $('downloadOutput').href = url; $('downloadOutput').download = state.output.filename;
-    $('compareAfter').src = url; $('compareBefore').src = imageUrl(state.input);
+    for (const id of ['compareAfter', 'compareBefore']) {
+      $(id).onload = updateComparison;
+      $(id).onerror = updateComparison;
+    }
+    $('comparisonImages').hidden = true; $('compareHint').hidden = false;
+    if (state.input) {
+      $('compareAfter').src = url; $('compareBefore').src = imageUrl(state.input);
+    }
   } else { $('outputName').textContent = state.running ? 'Processing your image' : 'Waiting for a run'; $('outputSize').textContent = '—'; }
+}
+function updateComparison() {
+  const loaded = !!state.input && !!state.output && ['compareBefore', 'compareAfter'].every(id => $(id).complete && $(id).naturalWidth > 0);
+  $('comparisonImages').hidden = !loaded;
+  $('compareHint').hidden = loaded;
+  $('downloadComparison').hidden = !loaded;
+  $('expandComparison').hidden = !loaded || $('comparisonDialog').open;
+  $('compareSlider').disabled = !loaded;
+}
+function retryImagePreviews() {
+  // Restored images can fail before the engine starts. Retry failed requests,
+  // including hidden comparison images, without reloading successful previews.
+  for (const id of ['inputImage', 'outputImage', 'compareBefore', 'compareAfter']) {
+    const image = $(id);
+    if (image.getAttribute('src') && image.complete && !image.naturalWidth) image.src = image.src;
+  }
 }
 function preview(url) {
   if (!state.running || state.output) return;
@@ -545,6 +592,7 @@ async function health() {
     if(state.media==='text')return;
     state.ready = info.ready;
     if(info.ready) {
+      if (engineNotice && $('notice').textContent === engineNotice) notice();
       state.cpuMode=info.devices[0]?.type==='cpu';
       $('engineBanner').hidden=!state.cpuMode;
       $('deviceName').textContent = info.devices[0]?.type === 'cpu' ? 'CPU mode · slower processing' : info.devices[0]?.name.replace(/^cuda:\d+ /,'').replace(/ : .*/,'') || 'Local image engine';
@@ -552,11 +600,14 @@ async function health() {
         state.graph=await request('/api/graph');applyRunSettings();configureInputGraph();renderGraph();syncVerificationGraph();
       }
       connectSocket();
+      retryImagePreviews();
     } else {
-      $('connectionText').textContent='Starting engine';$('deviceName').textContent=info.message;
-      if (info.message.includes('stopped')) notice(info.message);
+      state.socketReady = false;
+      $('connectionDot').classList.remove('ready');
+      $('connectionText').textContent=info.message.includes('stopped') ? 'Engine stopped' : 'Starting engine';$('deviceName').textContent=info.message;
+      if (info.message.includes('stopped')) noticeEngine(info.message);
     }
-  } catch {state.ready=false;$('connectionText').textContent='Engine unavailable';}
+  } catch {state.ready=false;state.socketReady=false;$('connectionDot').classList.remove('ready');$('connectionText').textContent='Engine unavailable';}
   updateButtons();
 }
 $('processView').onclick=()=>setView('process');$('minimalView').onclick=()=>setView('minimal');
@@ -585,6 +636,27 @@ $('followButton').onclick=()=>{state.follow=!state.follow;$('followButton').clas
 $('zoomOut').onclick=()=>{state.zoom=Math.max(.4,state.zoom-.1);renderGraph();};
 $('zoomIn').onclick=()=>{state.zoom=Math.min(1.6,state.zoom+.1);renderGraph();};
 $('compareSlider').oninput=e=>$('comparisonImages').style.setProperty('--split',`${e.target.value}%`);
+$('expandComparison').onclick=()=>{
+  if ($('compareSlider').disabled) return;
+  // Keep the same images and slider so their position survives opening and closing.
+  $('comparisonDialog').append($('comparisonCard'));
+  $('expandComparison').hidden=true;
+  $('closeComparison').hidden=false;
+  document.body.classList.add('comparison-open');
+  $('comparisonDialog').showModal();
+  $('closeComparison').focus();
+};
+$('closeComparison').onclick=()=>$('comparisonDialog').close();
+$('comparisonDialog').addEventListener('close',()=>{
+  $('imageWorkspace').append($('comparisonCard'));
+  $('closeComparison').hidden=true;
+  document.body.classList.remove('comparison-open');
+  updateComparison();
+  $('expandComparison').focus({preventScroll:true});
+});
+$('comparisonDialog').addEventListener('click',event=>{
+  if (event.target===$('comparisonDialog')) $('comparisonDialog').close();
+});
 function downloadBlob(blob, name) {
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }

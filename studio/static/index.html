@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Synth Forge</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23bbf77b'/%3E%3Cpath d='M16 42V22l16 20V22l16 20' stroke='%23131617' stroke-width='6' fill='none'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/controls.css?v=local-only-1"><script type="module" src="/static/app.js?v=local-only-1"></script>
+  <link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/controls.css?v=expanded-comparison-1"><script type="module" src="/static/app.js?v=expanded-comparison-1"></script>
 </head>
 <body>
   <header class="topbar">
@@ -41,7 +41,7 @@
         <div class="image-area"><img id="outputImage" alt="Processed output image" hidden><span id="outputHint" class="empty"><span class="output-icon">◇</span><strong>Your result appears here</strong><span>Upload an image and start a run</span></span><span id="previewBadge" class="preview-badge" hidden>INTERMEDIATE PREVIEW</span></div>
         <div class="card-foot"><span id="outputName">Waiting for a run</span><span id="outputSize">—</span></div>
       </article>
-      <article class="image-card comparison-card"><div class="card-head"><h2><span class="number">03</span> Compare</h2><button id="downloadComparison" class="text-button" hidden>↓ Save comparison</button></div>
+      <article id="comparisonCard" class="image-card comparison-card"><div class="card-head"><h2 id="comparisonTitle"><span class="number">03</span> Compare</h2><div class="comparison-actions"><button id="expandComparison" class="text-button" aria-haspopup="dialog" aria-controls="comparisonDialog" hidden>⛶ Expand</button><button id="downloadComparison" class="text-button" hidden>↓ Save comparison</button><button id="closeComparison" class="text-button" hidden>✕ Close</button></div></div>
         <div id="comparisonArea" class="image-area compare-area"><div id="comparisonImages" hidden><img id="compareAfter" alt="Processed image for comparison"><img id="compareBefore" alt="Original image for comparison"><div id="compareLine"><span>↔</span></div><span class="compare-label before-label">INPUT</span><span class="compare-label after-label">OUTPUT</span></div><span id="compareHint" class="empty"><span class="output-icon">◧</span><strong>A closer look</strong><span>Slide between original and result</span></span></div>
         <div class="card-foot compare-foot"><input id="compareSlider" type="range" min="0" max="100" value="50" aria-label="Before and after comparison"><span>Before / after</span></div>
       </article>
@@ -75,5 +75,6 @@
     </section>
     <footer><span id="footerProcessing"><i></i> Image processing runs on this device</span><span>Synth Forge / independent workspace</span></footer>
   </main>
+  <dialog id="comparisonDialog" class="comparison-dialog" aria-labelledby="comparisonTitle"></dialog>
 </body>
 </html>

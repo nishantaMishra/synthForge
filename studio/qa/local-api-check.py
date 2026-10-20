@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
+import aiohttp
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
@@ -16,6 +17,17 @@ from jobs import job_id
 
 
 class LocalAPI(unittest.IsolatedAsyncioTestCase):
+    async def test_unavailable_image_engine_returns_retryable_uncached_response(self):
+        studio = server.Studio(8191)
+        def disconnected(*args, **kwargs):
+            raise aiohttp.ClientConnectionError('Engine has not started')
+        studio.session = SimpleNamespace(request=disconnected)
+        request = make_mocked_request('GET', '/comfy/view?filename=input.png', match_info={'route': 'view'})
+        response = await studio.proxy(request)
+        self.assertEqual(response.status, 503)
+        self.assertEqual(response.headers['Cache-Control'], 'no-store')
+        self.assertIn('image engine is unavailable', json.loads(response.text)['error']['message'])
+
     async def test_pages_and_client_assets_are_not_cached(self):
         async def handler(request):
             return web.Response(text='local asset')
