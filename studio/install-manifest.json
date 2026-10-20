@@ -1,0 +1,169 @@
+{
+  "repositories": [
+    {
+      "path": "ComfyUI",
+      "url": "https://github.com/comfyanonymous/ComfyUI.git",
+      "revision": "08ff3c11b3a85eb07c2c06f21cb378ac2e086840"
+    },
+    {
+      "path": "ComfyUI/custom_nodes/ComfyUI-GGUF",
+      "url": "https://github.com/city96/ComfyUI-GGUF.git",
+      "revision": "6ea2651e7df66d7585f6ffee804b20e92fb38b8a"
+    },
+    {
+      "path": "ComfyUI/custom_nodes/ComfyUI-Impact-Pack",
+      "url": "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git",
+      "revision": "429d0159ad429e64d2b3916e6e7be9c22d025c3c"
+    },
+    {
+      "path": "ComfyUI/custom_nodes/ComfyUI-Impact-Subpack",
+      "url": "https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git",
+      "revision": "50c7b71a6a224734cc9b21963c6d1926816a97f1"
+    },
+    {
+      "path": "ComfyUI/custom_nodes/ComfyUI-Inpaint-CropAndStitch",
+      "url": "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch.git",
+      "revision": "8584b08d851762965df898b421a39075fc5357ae"
+    },
+    {
+      "path": "ComfyUI/custom_nodes/ComfyUI-KJNodes",
+      "url": "https://github.com/kijai/ComfyUI-KJNodes.git",
+      "revision": "d3cfe21625e5170126ce06fbfcfe1d88108688c3"
+    },
+    {
+      "path": "ComfyUI/custom_nodes/RES4LYF",
+      "url": "https://github.com/ClownsharkBatwing/RES4LYF.git",
+      "revision": "56e44755d866c87ff9cb4b6608c8e42155db6ecc"
+    },
+    {
+      "path": "ComfyUI/custom_nodes/comfyui_controlnet_aux",
+      "url": "https://github.com/Fannovel16/comfyui_controlnet_aux.git",
+      "revision": "0cd290477128d42cdc3e76a826a402d866e8c684"
+    },
+    {
+      "path": "ComfyUI/custom_nodes/masquerade-nodes-comfyui",
+      "url": "https://github.com/BadCafeCode/masquerade-nodes-comfyui.git",
+      "revision": "432cb4d146a391b387a0cd25ace824328b5b61cf"
+    },
+    {
+      "path": "ComfyUI/custom_nodes/rgthree-comfy",
+      "url": "https://github.com/rgthree/rgthree-comfy.git",
+      "revision": "d7297b42f0fa78bec1c0411478f887423c249502"
+    },
+    {
+      "path": "Synthid-Bypass",
+      "url": "https://github.com/cebeuq/Synthid-Bypass.git",
+      "revision": "c45d3bddc33d71ef925521f65e8ca9439c8a7efa"
+    }
+  ],
+  "files": [
+    {
+      "path": "ComfyUI/custom_nodes/comfyui_controlnet_aux/ckpts/mediapipe/face_landmarker.task",
+      "url": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+      "size": 3758596,
+      "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff"
+    },
+    {
+      "path": "ComfyUI/models/clip/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+      "url": "https://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/68bb8bc4b7df5289c143aaec0ab477a7d4051aab/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+      "size": 4683072384,
+      "sha256": "d16776dcd9a28d42758c2958ed3a752aabf20a305252cd64ff2be72b4a78c503"
+    },
+    {
+      "path": "ComfyUI/models/clip/Qwen_3_4b-imatrix-IQ4_XS.gguf",
+      "url": "https://huggingface.co/worstplayer/Z-Image_Qwen_3_4b_text_encoder_GGUF/resolve/be61e80900a2c05a7d6c43a2834c46821ec7325c/Qwen_3_4b-imatrix-IQ4_XS.gguf",
+      "size": 2270751136,
+      "sha256": "44ab0366e0a805e1b10adc78304e301184a2e86a20fa9897c5d81e418eb4340a"
+    },
+    {
+      "path": "ComfyUI/models/diffusion_models/qwen-image-2512-Q4_K_M.gguf",
+      "url": "https://huggingface.co/unsloth/Qwen-Image-2512-GGUF/resolve/1626d7531f84b4d2ea1cd6d2e69f41ec027dd354/qwen-image-2512-Q4_K_M.gguf",
+      "size": 13244758560,
+      "sha256": "b2a5f6249eb58ee10c9e2ce8cb1114b89897db23de2fdf7dc49140800aa928fc"
+    },
+    {
+      "path": "ComfyUI/models/diffusion_models/z_image_turbo-Q4_K_M.gguf",
+      "url": "https://huggingface.co/jayn7/Z-Image-Turbo-GGUF/resolve/6e2dff8e3abd78051c1211fb5833a03818a2f3cc/z_image_turbo-Q4_K_M.gguf",
+      "size": 4981532736,
+      "sha256": "745ec270db042409fde084d6b5cfccabf214a7fe5a494edf994a391125656afd"
+    },
+    {
+      "path": "ComfyUI/models/loras/Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors",
+      "url": "https://huggingface.co/lightx2v/Qwen-Image-2512-Lightning/resolve/4609161e308ce82018a42c2a0c9b107e865bb751/Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors",
+      "size": 1698951104,
+      "sha256": "ad12117461cb41e2ea637fec8df6392ce8e8550c47fbe2b829ed3deb98262066"
+    },
+    {
+      "path": "ComfyUI/models/model_patches/qwen_image_canny_diffsynth_controlnet.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-DiffSynth-ControlNets/resolve/5ad28a1b22cd0d947b59226c4b569d293eb695ef/split_files/model_patches/qwen_image_canny_diffsynth_controlnet.safetensors",
+      "size": 2266838080,
+      "sha256": "16f54f5c3c84cb213eba98d304e7486816a39b2891715c662024f40192093429"
+    },
+    {
+      "path": "ComfyUI/models/sams/sam_vit_b_01ec64.pth",
+      "url": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth",
+      "size": 375042383,
+      "sha256": "ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912"
+    },
+    {
+      "path": "ComfyUI/models/ultralytics/bbox/yolov8n-face.pt",
+      "url": "https://huggingface.co/Bingsu/adetailer/resolve/53cc19de382014514d9d4038601d261a7faa9b7b/face_yolov8n.pt",
+      "size": 6230011,
+      "sha256": "70b640f8f60b1cf0dcc72f30caf3da9495eb2fb6509da48c53374ad6806e6a9c"
+    },
+    {
+      "path": "ComfyUI/models/vae/ae.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/6fc90a3b1b653e935a0d175e260736de25b84df5/split_files/vae/ae.safetensors",
+      "size": 335304388,
+      "sha256": "afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38"
+    },
+    {
+      "path": "ComfyUI/models/vae/qwen_image_vae.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/1f12b17be14c89b026c51a91d67c32f84bb047bc/split_files/vae/qwen_image_vae.safetensors",
+      "size": 253806246,
+      "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f"
+    },
+    {
+      "path": "studio/models/desklib/added_tokens.json",
+      "url": "https://huggingface.co/desklib/ai-text-detector-v1.01/resolve/5fdea974cd4287c61674951ec78803aa274e2fb7/added_tokens.json",
+      "size": 23,
+      "git_blob_sha1": "8ee2b3623dc526b123cde0aaa401755b82299af2"
+    },
+    {
+      "path": "studio/models/desklib/config.json",
+      "url": "https://huggingface.co/desklib/ai-text-detector-v1.01/resolve/5fdea974cd4287c61674951ec78803aa274e2fb7/config.json",
+      "size": 890,
+      "git_blob_sha1": "8461c98809a6dbd9cb48614822890fd5f91aedb9"
+    },
+    {
+      "path": "studio/models/desklib/model.safetensors",
+      "url": "https://huggingface.co/desklib/ai-text-detector-v1.01/resolve/5fdea974cd4287c61674951ec78803aa274e2fb7/model.safetensors",
+      "size": 1736100972,
+      "sha256": "c024a1704c65f5a4bffeda58745c58fc0ed67d6ca07b158b068a257238815265"
+    },
+    {
+      "path": "studio/models/desklib/special_tokens_map.json",
+      "url": "https://huggingface.co/desklib/ai-text-detector-v1.01/resolve/5fdea974cd4287c61674951ec78803aa274e2fb7/special_tokens_map.json",
+      "size": 286,
+      "git_blob_sha1": "2c9cb07c8fdeeb5ac3ceafb170592e990b204dcd"
+    },
+    {
+      "path": "studio/models/desklib/spm.model",
+      "url": "https://huggingface.co/desklib/ai-text-detector-v1.01/resolve/5fdea974cd4287c61674951ec78803aa274e2fb7/spm.model",
+      "size": 2464616,
+      "sha256": "c679fbf93643d19aab7ee10c0b99e460bdbc02fedf34b92b05af343b4af586fd"
+    },
+    {
+      "path": "studio/models/desklib/tokenizer.json",
+      "url": "https://huggingface.co/desklib/ai-text-detector-v1.01/resolve/5fdea974cd4287c61674951ec78803aa274e2fb7/tokenizer.json",
+      "size": 8656624,
+      "git_blob_sha1": "12cc2e86bad0e731393847b017b32a7405ebd4f8"
+    },
+    {
+      "path": "studio/models/desklib/tokenizer_config.json",
+      "url": "https://huggingface.co/desklib/ai-text-detector-v1.01/resolve/5fdea974cd4287c61674951ec78803aa274e2fb7/tokenizer_config.json",
+      "size": 1315,
+      "git_blob_sha1": "d97990f914148256b78fc640156dbce40981c8f7"
+    }
+  ]
+}

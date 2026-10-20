@@ -1,5 +1,25 @@
 # Validation
 
+## Linux installer — 20 October 2026
+
+- Added `bash install.sh` for Debian/Ubuntu x86-64, with private Python setup,
+  pinned upstream sources and Python packages, verified/resumable model downloads,
+  local Ollama setup, device selection, and a workflow startup check.
+- Twelve installer tests cover actual local-file downloads, interrupted-download
+  recovery, checksum failures, existing-file preservation, pinned Git checkout,
+  model coverage, and owned versus external Ollama process handling.
+- Automatic Python bootstrapping succeeded in a temporary directory. All eleven
+  pinned upstream repositories were fetched into a fresh temporary source tree.
+  A clean CPU environment installed the resolved dependencies and passed
+  `pip check`. The freshly downloaded sources loaded all 36 executable workflow
+  nodes with that environment, reusing the existing image models through symlinks.
+- A real Desklib CPU run succeeded with the fresh dependencies. Existing text
+  tests passed. API tests also cover saved device mode and explicit CPU selection.
+- Shell/Python syntax checks, installer help/dry-run, and whitespace checks passed.
+  No full diffusion inference, NVIDIA package installation, or complete fresh-OS
+  installation was run. System package installation and the private Ollama binary
+  download were not exercised; the current machine's Ollama service was preserved.
+
 ## Local hardware only — 13 October 2026
 
 AWS deployment templates, the hosted web app and worker, setup routes and UI,

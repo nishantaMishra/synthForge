@@ -5,12 +5,14 @@ import json
 from pathlib import Path
 import signal
 import subprocess
+import webbrowser
 from urllib.parse import urlsplit
 
 import aiohttp
 from aiohttp import web
 from workflow import compile_workflow, describe_graph, make_run
 from jobs import job_id
+from local_runtime import start_ollama, stop_process
 from text_pipeline import TextStudio, text_graph
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,15 +37,21 @@ class Studio:
         self.session = None
         self.template = None
         self.child = None
+        self.ollama_child = None
         self.workflow = json.loads(WORKFLOW.read_text())
         self.text = TextStudio(self, ROOT)
 
     async def start(self, app):
         self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=180))
+        try:
+            self.ollama_child = await asyncio.to_thread(start_ollama, ROOT)
+        except (RuntimeError, OSError) as error:
+            print(str(error), flush=True)
 
     async def close(self, app):
         await self.text.close()
         await self.session.close()
+        await asyncio.to_thread(stop_process, self.ollama_child)
 
     async def registry(self):
         async with self.session.get(self.url + '/object_info') as response:
@@ -143,7 +151,11 @@ def main():
     parser.add_argument('--backend-port', type=int, default=8191)
     parser.add_argument('--external-backend', action='store_true', help='For local testing against an already-running copy')
     parser.add_argument('--cpu', action='store_true')
+    parser.add_argument('--open', action='store_true', help='Open Synth Forge in the default browser')
     args = parser.parse_args()
+    configuration = ROOT / 'runtime/install.json'
+    if configuration.exists() and not args.cpu:
+        args.cpu = json.loads(configuration.read_text()).get('mode') == 'cpu'
     logs = ROOT / 'logs'
     logs.mkdir(exist_ok=True)
     child = None
@@ -158,6 +170,13 @@ def main():
     studio.child = child
     app = web.Application(client_max_size=100 * 1024**2, middlewares=[local_origin])
     app.on_startup.append(studio.start)
+    if args.open:
+        async def open_browser(app):
+            async def delayed_open():
+                await asyncio.sleep(1)
+                await asyncio.to_thread(webbrowser.open, f'http://127.0.0.1:{args.port}')
+            app['browser_task'] = asyncio.create_task(delayed_open())
+        app.on_startup.append(open_browser)
     app.on_cleanup.append(studio.close)
     app.router.add_get('/', lambda request: web.FileResponse(STATIC / 'index.html'))
     app.router.add_get('/api/health', studio.health)
